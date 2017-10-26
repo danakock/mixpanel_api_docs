@@ -32,8 +32,7 @@ sys.path.insert(0, os.path.abspath('..'))
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
-    'sphinx.ext.viewcode',
-    'rst2pdf.pdfbuilder'
+    'sphinx.ext.viewcode'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -438,7 +437,7 @@ epub_exclude_files = ['search.html']
 # Sample rst2pdf doc - title of the pdf
 # Your Name - author name in the pdf
 
-pdf_documents = [('index', u'mixpanel_api', u'mixpanel_api docs', u'Jared McFarland'),]
+# pdf_documents = [('index', u'mixpanel_api', u'mixpanel_api docs', u'Jared McFarland'),]
 
 
 def skip(app, what, name, obj, skip, options):
