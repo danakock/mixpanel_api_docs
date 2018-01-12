@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>mixpanel_api &#8212; mixpanel_api 1.2.0 documentation</title>
+    <title>mixpanel_api &#8212; mixpanel_api 1.6.0 documentation</title>
     
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '1.2.0',
+        VERSION:     '1.6.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true,
@@ -38,7 +38,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">mixpanel_api 1.2.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">mixpanel_api 1.6.0 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li> 
       </ul>
     </div>  
@@ -193,7 +193,8 @@
             <span class="k">pass</span>
         <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;Revenue&#39;</span><span class="p">:</span> <span class="n">total</span><span class="p">}</span></div>
 
-<div class="viewcode-block" id="Mixpanel.request"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.request">[docs]</a>    <span class="k">def</span> <span class="nf">request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_url</span><span class="p">,</span> <span class="n">path_components</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;GET&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="Mixpanel.request"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.request">[docs]</a>    <span class="k">def</span> <span class="nf">request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_url</span><span class="p">,</span> <span class="n">path_components</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;GET&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">raw_stream</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="n">delay</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Base method for sending HTTP requests to the various Mixpanel APIs</span>
 
 <span class="sd">        :param base_url: Ex: https://api.mixpanel.com</span>
@@ -201,13 +202,19 @@
 <span class="sd">        :param params: dictionary containing the Mixpanel parameters for the API request</span>
 <span class="sd">        :param method: HTTP method verb: &#39;GET&#39;, &#39;POST&#39;, &#39;PUT&#39;, &#39;DELETE&#39;, &#39;PATCH&#39;</span>
 <span class="sd">        :param headers: HTTP request headers dict (Default value = None)</span>
-<span class="sd">        :param retries: number of times the request has been retried (Default value = 0)</span>
+<span class="sd">        :param raw_stream: Return the raw file-like response directly from urlopen, only works when base_url is</span>
+<span class="sd">            Mixpanel.RAW_API</span>
+<span class="sd">        :param retries: number of times the request has been retried due to HTTP 5xx error (Default value = 0)</span>
+<span class="sd">        :param delay: Amount of time to wait between retries in seconds. Increases exponentially with each retry until</span>
+<span class="sd">            it reaches the max delay of 10. (Default value = 2)</span>
 <span class="sd">        :type base_url: str</span>
 <span class="sd">        :type path_components: list</span>
 <span class="sd">        :type params: dict</span>
 <span class="sd">        :type method: str</span>
 <span class="sd">        :type headers: dict</span>
+<span class="sd">        :type raw_stream: bool</span>
 <span class="sd">        :type retries: int</span>
+<span class="sd">        :type delay: int</span>
 <span class="sd">        :return: JSON data returned from API</span>
 <span class="sd">        :rtype: str</span>
 
@@ -248,17 +255,27 @@
 
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">response</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">raw_stream</span> <span class="ow">and</span> <span class="n">base_url</span> <span class="o">==</span> <span class="n">Mixpanel</span><span class="o">.</span><span class="n">RAW_API</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">response</span>
             <span class="k">except</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">HTTPError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;The server couldn</span><span class="se">\&#39;</span><span class="s1">t fulfill the request.&#39;</span><span class="p">)</span>
                 <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Error code: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">code</span><span class="p">))</span>
                 <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Reason: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">reason</span><span class="p">))</span>
                 <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="s1">&#39;read&#39;</span><span class="p">):</span>
-                    <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Response :&#39;</span> <span class="o">+</span> <span class="n">e</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+                    <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Response: &#39;</span> <span class="o">+</span> <span class="n">e</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+                <span class="k">if</span> <span class="mi">500</span> <span class="o">&lt;=</span> <span class="n">e</span><span class="o">.</span><span class="n">code</span> <span class="o">&lt;=</span> <span class="mi">599</span><span class="p">:</span>
+                    <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Attempting Retry #&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">retries</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+                    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">delay</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">delay</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">:</span>
+                        <span class="n">delay</span> <span class="o">*=</span> <span class="mi">2</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="n">path_components</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">raw_stream</span><span class="o">=</span><span class="n">raw_stream</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="n">retries</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">delay</span><span class="o">=</span><span class="n">delay</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span>
             <span class="k">except</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">URLError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;We failed to reach a server.&#39;</span><span class="p">)</span>
                 <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Reason: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">reason</span><span class="p">))</span>
                 <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="s1">&#39;read&#39;</span><span class="p">):</span>
-                    <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Response :&#39;</span> <span class="o">+</span> <span class="n">e</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+                    <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Response: &#39;</span> <span class="o">+</span> <span class="n">e</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="c1"># If the response is gzipped we go ahead and decompress</span>
@@ -275,6 +292,11 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Maximum retries reached. Request failed.&quot;</span><span class="p">)</span>
             <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;The server may be overloaded. Try again later.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">base_url</span> <span class="o">==</span> <span class="n">Mixpanel</span><span class="o">.</span><span class="n">IMPORT_API</span> <span class="ow">or</span> <span class="n">base_url</span> <span class="o">==</span> <span class="n">Mixpanel</span><span class="o">.</span><span class="n">BETA_IMPORT_API</span><span class="p">:</span>
+                <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Failed to import batch, dumping to file import_backup.txt&quot;</span><span class="p">)</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;import_backup.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">backup</span><span class="p">:</span>
+                    <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]),</span> <span class="n">backup</span><span class="p">)</span>
+                    <span class="n">backup</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
             <span class="k">return</span></div>
 
 <div class="viewcode-block" id="Mixpanel.people_operation"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.people_operation">[docs]</a>    <span class="k">def</span> <span class="nf">people_operation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">operation</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timezone_offset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -301,6 +323,8 @@
 <span class="sd">        :type ignore_alias: bool</span>
 <span class="sd">        :type backup: bool</span>
 <span class="sd">        :type backup_file: str</span>
+<span class="sd">        :return: Number of profiles operated on</span>
+<span class="sd">        :rtype: int</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="p">,</span> <span class="s2">&quot;Project token required for People operation!&quot;</span>
@@ -325,7 +349,11 @@
         <span class="n">dynamic</span> <span class="o">=</span> <span class="n">isfunction</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_dispatch_batches</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">IMPORT_API</span><span class="p">,</span> <span class="s1">&#39;engage&#39;</span><span class="p">,</span> <span class="n">profiles_list</span><span class="p">,</span>
-                               <span class="p">[{},</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="p">,</span> <span class="n">operation</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="p">,</span> <span class="n">dynamic</span><span class="p">])</span></div>
+                               <span class="p">[{},</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="p">,</span> <span class="n">operation</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="p">,</span> <span class="n">dynamic</span><span class="p">])</span>
+
+        <span class="n">profile_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">profiles_list</span><span class="p">)</span>
+        <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">operation</span> <span class="o">+</span> <span class="s1">&#39; operation applied to &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">profile_count</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; profiles&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">profile_count</span></div>
 
 <div class="viewcode-block" id="Mixpanel.people_delete"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.people_delete">[docs]</a>    <span class="k">def</span> <span class="nf">people_delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timezone_offset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                       <span class="n">backup_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -344,11 +372,13 @@
 <span class="sd">        :type timezone_offset: int | float</span>
 <span class="sd">        :type backup: bool</span>
 <span class="sd">        :type backup_file: str</span>
+<span class="sd">        :return: Number of profiles deleted</span>
+<span class="sd">        :rtype: int</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$delete&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">profiles</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span>
-                              <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="n">backup</span><span class="p">,</span>
-                              <span class="n">backup_file</span><span class="o">=</span><span class="n">backup_file</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$delete&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">profiles</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span>
+                                     <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="n">backup</span><span class="p">,</span>
+                                     <span class="n">backup_file</span><span class="o">=</span><span class="n">backup_file</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Mixpanel.people_set"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.people_set">[docs]</a>    <span class="k">def</span> <span class="nf">people_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timezone_offset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                    <span class="n">backup_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -370,11 +400,13 @@
 <span class="sd">        :type ignore_alias: bool</span>
 <span class="sd">        :type backup: bool</span>
 <span class="sd">        :type backup_file: str</span>
+<span class="sd">        :return: Number of profiles operated on</span>
+<span class="sd">        :rtype: int</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$set&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">profiles</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span>
-                              <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="n">backup</span><span class="p">,</span>
-                              <span class="n">backup_file</span><span class="o">=</span><span class="n">backup_file</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$set&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">profiles</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span>
+                                     <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="n">backup</span><span class="p">,</span>
+                                     <span class="n">backup_file</span><span class="o">=</span><span class="n">backup_file</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Mixpanel.people_set_once"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.people_set_once">[docs]</a>    <span class="k">def</span> <span class="nf">people_set_once</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timezone_offset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                         <span class="n">backup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">backup_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -397,11 +429,13 @@
 <span class="sd">        :type ignore_alias: bool</span>
 <span class="sd">        :type backup: bool</span>
 <span class="sd">        :type backup_file: str</span>
+<span class="sd">        :return: Number of profiles operated on</span>
+<span class="sd">        :rtype: int</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$set_once&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">profiles</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span>
-                              <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="n">backup</span><span class="p">,</span>
-                              <span class="n">backup_file</span><span class="o">=</span><span class="n">backup_file</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$set_once&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">profiles</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span>
+                                     <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="n">backup</span><span class="p">,</span>
+                                     <span class="n">backup_file</span><span class="o">=</span><span class="n">backup_file</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Mixpanel.people_unset"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.people_unset">[docs]</a>    <span class="k">def</span> <span class="nf">people_unset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timezone_offset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                      <span class="n">backup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">backup_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -424,11 +458,13 @@
 <span class="sd">        :type ignore_alias: bool</span>
 <span class="sd">        :type backup: bool</span>
 <span class="sd">        :type backup_file: str</span>
+<span class="sd">        :return: Number of profiles operated on</span>
+<span class="sd">        :rtype: int</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$unset&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">profiles</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span>
-                              <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="n">backup</span><span class="p">,</span>
-                              <span class="n">backup_file</span><span class="o">=</span><span class="n">backup_file</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$unset&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">profiles</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span>
+                                     <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="n">backup</span><span class="p">,</span>
+                                     <span class="n">backup_file</span><span class="o">=</span><span class="n">backup_file</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Mixpanel.people_add"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.people_add">[docs]</a>    <span class="k">def</span> <span class="nf">people_add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timezone_offset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                    <span class="n">backup_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -452,11 +488,13 @@
 <span class="sd">        :type ignore_alias: bool</span>
 <span class="sd">        :type backup: bool</span>
 <span class="sd">        :type backup_file: str</span>
+<span class="sd">        :return: Number of profiles operated on</span>
+<span class="sd">        :rtype: int</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$add&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">profiles</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span>
-                              <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="n">backup</span><span class="p">,</span>
-                              <span class="n">backup_file</span><span class="o">=</span><span class="n">backup_file</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$add&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">profiles</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span>
+                                     <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="n">backup</span><span class="p">,</span>
+                                     <span class="n">backup_file</span><span class="o">=</span><span class="n">backup_file</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Mixpanel.people_append"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.people_append">[docs]</a>    <span class="k">def</span> <span class="nf">people_append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timezone_offset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                       <span class="n">backup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">backup_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -480,11 +518,13 @@
 <span class="sd">        :type ignore_alias: bool</span>
 <span class="sd">        :type backup: bool</span>
 <span class="sd">        :type backup_file: str</span>
+<span class="sd">        :return: Number of profiles operated on</span>
+<span class="sd">        :rtype: int</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$append&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">profiles</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span>
-                              <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="n">backup</span><span class="p">,</span>
-                              <span class="n">backup_file</span><span class="o">=</span><span class="n">backup_file</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$append&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">profiles</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span>
+                                     <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="n">backup</span><span class="p">,</span>
+                                     <span class="n">backup_file</span><span class="o">=</span><span class="n">backup_file</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Mixpanel.people_union"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.people_union">[docs]</a>    <span class="k">def</span> <span class="nf">people_union</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timezone_offset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                      <span class="n">backup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">backup_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -508,11 +548,13 @@
 <span class="sd">        :type ignore_alias: bool</span>
 <span class="sd">        :type backup: bool</span>
 <span class="sd">        :type backup_file: str</span>
+<span class="sd">        :return: Number of profiles operated on</span>
+<span class="sd">        :rtype: int</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$union&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">profiles</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span>
-                              <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="n">backup</span><span class="p">,</span>
-                              <span class="n">backup_file</span><span class="o">=</span><span class="n">backup_file</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$union&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">profiles</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span>
+                                     <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="n">backup</span><span class="p">,</span>
+                                     <span class="n">backup_file</span><span class="o">=</span><span class="n">backup_file</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Mixpanel.people_remove"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.people_remove">[docs]</a>    <span class="k">def</span> <span class="nf">people_remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timezone_offset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                       <span class="n">backup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">backup_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -536,11 +578,13 @@
 <span class="sd">        :type ignore_alias: bool</span>
 <span class="sd">        :type backup: bool</span>
 <span class="sd">        :type backup_file: str</span>
+<span class="sd">        :return: Number of profiles operated on</span>
+<span class="sd">        :rtype: int</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$remove&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">profiles</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span>
-                              <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="n">backup</span><span class="p">,</span>
-                              <span class="n">backup_file</span><span class="o">=</span><span class="n">backup_file</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$remove&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">profiles</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span>
+                                     <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="n">backup</span><span class="p">,</span>
+                                     <span class="n">backup_file</span><span class="o">=</span><span class="n">backup_file</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Mixpanel.people_change_property_name"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.people_change_property_name">[docs]</a>    <span class="k">def</span> <span class="nf">people_change_property_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">old_name</span><span class="p">,</span> <span class="n">new_name</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timezone_offset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                     <span class="n">ignore_alias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">backup_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unset</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
@@ -566,17 +610,22 @@
 <span class="sd">        :type backup: bool</span>
 <span class="sd">        :type backup_file: str</span>
 <span class="sd">        :type unset: bool</span>
+<span class="sd">        :return: Number of profiles operated on</span>
+<span class="sd">        :rtype: int</span>
 
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">profiles</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">query_params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">query_params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;selector&#39;</span><span class="p">:</span> <span class="s1">&#39;(defined (properties[&quot;&#39;</span> <span class="o">+</span> <span class="n">old_name</span> <span class="o">+</span> <span class="s1">&#39;&quot;]))&#39;</span><span class="p">}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$set&#39;</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="p">{</span><span class="n">new_name</span><span class="p">:</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;$properties&#39;</span><span class="p">][</span><span class="n">old_name</span><span class="p">]},</span> <span class="n">query_params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span>
-                              <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="n">backup</span><span class="p">,</span>
-                              <span class="n">backup_file</span><span class="o">=</span><span class="n">backup_file</span><span class="p">)</span>
+        <span class="n">profile_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$set&#39;</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="p">{</span><span class="n">new_name</span><span class="p">:</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;$properties&#39;</span><span class="p">][</span><span class="n">old_name</span><span class="p">]},</span>
+                                              <span class="n">profiles</span><span class="o">=</span><span class="n">profiles</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span>
+                                              <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="n">backup</span><span class="p">,</span>
+                                              <span class="n">backup_file</span><span class="o">=</span><span class="n">backup_file</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">unset</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$unset&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">old_name</span><span class="p">],</span> <span class="n">profiles</span><span class="o">=</span><span class="n">profiles</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span>
-                                  <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+                                  <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">profile_count</span></div>
 
 <div class="viewcode-block" id="Mixpanel.people_revenue_property_from_transactions"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.people_revenue_property_from_transactions">[docs]</a>    <span class="k">def</span> <span class="nf">people_revenue_property_from_transactions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timezone_offset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                                   <span class="n">ignore_alias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">backup_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -598,14 +647,16 @@
 <span class="sd">        :type ignore_alias: bool</span>
 <span class="sd">        :type backup: bool</span>
 <span class="sd">        :type backup_file: str</span>
+<span class="sd">        :return: Number of profiles operated on</span>
+<span class="sd">        :rtype: int</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">profiles</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">query_params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">query_params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;selector&#39;</span><span class="p">:</span> <span class="s1">&#39;(defined (properties[&quot;$transactions&quot;]))&#39;</span><span class="p">}</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$set&#39;</span><span class="p">,</span> <span class="n">Mixpanel</span><span class="o">.</span><span class="n">sum_transactions</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">profiles</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span>
-                              <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="n">backup</span><span class="p">,</span>
-                              <span class="n">backup_file</span><span class="o">=</span><span class="n">backup_file</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$set&#39;</span><span class="p">,</span> <span class="n">Mixpanel</span><span class="o">.</span><span class="n">sum_transactions</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">profiles</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span>
+                                     <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="n">backup</span><span class="p">,</span>
+                                     <span class="n">backup_file</span><span class="o">=</span><span class="n">backup_file</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Mixpanel.deduplicate_people"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.deduplicate_people">[docs]</a>    <span class="k">def</span> <span class="nf">deduplicate_people</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prop_to_match</span><span class="o">=</span><span class="s1">&#39;$email&#39;</span><span class="p">,</span> <span class="n">merge_props</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">case_sensitive</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                            <span class="n">backup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">backup_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -629,6 +680,8 @@
 <span class="sd">        :type case_sensitive: bool</span>
 <span class="sd">        :type backup: bool</span>
 <span class="sd">        :type backup_file: str</span>
+<span class="sd">        :return: Number of profiles deleted</span>
+<span class="sd">        :rtype: int</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">main_reference</span> <span class="o">=</span> <span class="p">{}</span>
@@ -690,7 +743,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$set_once&#39;</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;$properties&#39;</span><span class="p">],</span> <span class="n">profiles</span><span class="o">=</span><span class="n">update_profiles</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                                   <span class="n">backup</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$delete&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">delete_profiles</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$delete&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">delete_profiles</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Mixpanel.query_jql"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.query_jql">[docs]</a>    <span class="k">def</span> <span class="nf">query_jql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">script</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Query the Mixpanel JQL API</span>
@@ -733,6 +786,8 @@
 <span class="sd">        :type ignore_alias: bool</span>
 <span class="sd">        :type backup: bool</span>
 <span class="sd">        :type backup_file: str</span>
+<span class="sd">        :return: Number of profiles operated on</span>
+<span class="sd">        :rtype: int</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
@@ -744,8 +799,8 @@
             <span class="c1"># backs up ALL profiles, not just those affected by the JQL since jql_data might not contain full profiles</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">export_people</span><span class="p">(</span><span class="n">backup_file</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="n">people_operation</span><span class="p">,</span> <span class="n">update_value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">jql_data</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span>
-                              <span class="n">backup</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="n">people_operation</span><span class="p">,</span> <span class="n">update_value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">jql_data</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="n">ignore_alias</span><span class="p">,</span>
+                                     <span class="n">backup</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Mixpanel.event_counts_to_people"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.event_counts_to_people">[docs]</a>    <span class="k">def</span> <span class="nf">event_counts_to_people</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">from_date</span><span class="p">,</span> <span class="n">events</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Sets the per user count of events in events list param as People properties</span>
@@ -754,6 +809,8 @@
 <span class="sd">        :param events: A list of strings of event names to be counted</span>
 <span class="sd">        :type from_date: datetime | str</span>
 <span class="sd">        :type events: list[str]</span>
+<span class="sd">        :return: Number of profiles operated on</span>
+<span class="sd">        :rtype: int</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
@@ -769,17 +826,19 @@
             <span class="n">from_date</span> <span class="o">=</span> <span class="n">from_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span>
 
         <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;from_date&#39;</span><span class="p">:</span> <span class="n">from_date</span><span class="p">,</span> <span class="s1">&#39;to_date&#39;</span><span class="p">:</span> <span class="n">to_date</span><span class="p">,</span> <span class="s1">&#39;events&#39;</span><span class="p">:</span> <span class="n">events</span><span class="p">}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">jql_operation</span><span class="p">(</span><span class="n">jql_script</span><span class="p">,</span> <span class="s1">&#39;$set&#39;</span><span class="p">,</span> <span class="n">jql_params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">jql_operation</span><span class="p">(</span><span class="n">jql_script</span><span class="p">,</span> <span class="s1">&#39;$set&#39;</span><span class="p">,</span> <span class="n">jql_params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Mixpanel.query_export"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.query_export">[docs]</a>    <span class="k">def</span> <span class="nf">query_export</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">add_gzip_header</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Mixpanel.query_export"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.query_export">[docs]</a>    <span class="k">def</span> <span class="nf">query_export</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">add_gzip_header</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">raw_stream</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Queries the /export API and returns a list of Mixpanel event dicts</span>
 
 <span class="sd">        https://mixpanel.com/help/reference/exporting-raw-data#export-api-reference</span>
 
 <span class="sd">        :param params: Parameters to use for the /export API request</span>
 <span class="sd">        :param add_gzip_header: Adds &#39;Accept-encoding: gzip&#39; to the request headers (Default value = False)</span>
+<span class="sd">        :param raw_stream: Returns the raw file-like response directly from urlopen instead of creating a list</span>
 <span class="sd">        :type params: dict</span>
 <span class="sd">        :type add_gzip_header: bool</span>
+<span class="sd">        :type raw_stream: bool</span>
 <span class="sd">        :return: A list of Mixpanel event dicts</span>
 <span class="sd">        :rtype: list</span>
 
@@ -787,19 +846,24 @@
         <span class="n">headers</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">add_gzip_header</span><span class="p">:</span>
             <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Accept-encoding&#39;</span><span class="p">:</span> <span class="s1">&#39;gzip&#39;</span><span class="p">}</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">Mixpanel</span><span class="o">.</span><span class="n">RAW_API</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;export&#39;</span><span class="p">],</span> <span class="n">params</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">file_like_object</span> <span class="o">=</span> <span class="n">cStringIO</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Error querying /export API&#39;</span><span class="p">)</span>
-            <span class="k">return</span>
-        <span class="n">raw_data</span> <span class="o">=</span> <span class="n">file_like_object</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-        <span class="c1"># Remove the last line which is only a newline</span>
-        <span class="n">raw_data</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
-        <span class="n">events</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">raw_data</span><span class="p">:</span>
-            <span class="n">events</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">line</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">events</span></div>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">Mixpanel</span><span class="o">.</span><span class="n">RAW_API</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;export&#39;</span><span class="p">],</span> <span class="n">params</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">raw_stream</span><span class="o">=</span><span class="n">raw_stream</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">response</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">raw_stream</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">response</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">file_like_object</span> <span class="o">=</span> <span class="n">cStringIO</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+                <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Error querying /export API&#39;</span><span class="p">)</span>
+                    <span class="k">return</span>
+                <span class="n">raw_data</span> <span class="o">=</span> <span class="n">file_like_object</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">events</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">raw_data</span><span class="p">:</span>
+                    <span class="n">events</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">line</span><span class="p">))</span>
+                <span class="k">return</span> <span class="n">events</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;/export API response empty&#39;</span><span class="p">)</span>
+            <span class="k">return</span></div>
 
 <div class="viewcode-block" id="Mixpanel.query_engage"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.query_engage">[docs]</a>    <span class="k">def</span> <span class="nf">query_engage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timezone_offset</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Queries the /engage API and returns a list of Mixpanel People profile dicts</span>
@@ -828,7 +892,7 @@
         <span class="k">return</span> <span class="n">engage_paginator</span><span class="o">.</span><span class="n">fetch_all</span><span class="p">(</span><span class="n">params</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Mixpanel.export_events"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.export_events">[docs]</a>    <span class="k">def</span> <span class="nf">export_events</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">,</span> <span class="n">timezone_offset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">add_gzip_header</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                      <span class="n">compress</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                      <span class="n">compress</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">request_per_day</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">raw_stream</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">buffer_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Queries the /export API and writes the Mixpanel event data to disk as a JSON or CSV file. Optionally gzip file.</span>
 
 <span class="sd">        https://mixpanel.com/help/reference/exporting-raw-data#export-api-reference</span>
@@ -840,12 +904,20 @@
 <span class="sd">            timestamps from project time to UTC</span>
 <span class="sd">        :param add_gzip_header: Adds &#39;Accept-encoding: gzip&#39; to the request headers (Default value = False)</span>
 <span class="sd">        :param compress: Option to gzip output_file (Default value = False)</span>
+<span class="sd">        :param request_per_day: Option to make one API request (and output file) per day in the exported date range</span>
+<span class="sd">            (Default value = False)</span>
+<span class="sd">        :param raw_stream: Option to stream the newline delimited JSON response directly to output_file. If True, format</span>
+<span class="sd">            , timezone_offset and compress arguments are ignored (Default value = False)</span>
+<span class="sd">        :param buffer_size: Buffer size in bytes to use if raw_stream is True (Default value = 1024)</span>
 <span class="sd">        :type output_file: str</span>
 <span class="sd">        :type params: dict</span>
 <span class="sd">        :type format: str</span>
 <span class="sd">        :type timezone_offset: int | float</span>
 <span class="sd">        :type add_gzip_header: bool</span>
 <span class="sd">        :type compress: bool</span>
+<span class="sd">        :type request_per_day: bool</span>
+<span class="sd">        :type raw_stream: bool</span>
+<span class="sd">        :type buffer_size: int</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Increase timeout to 20 minutes if it&#39;s still set to default, /export requests can take a long time</span>
@@ -853,17 +925,46 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="o">==</span> <span class="mi">120</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="o">=</span> <span class="mi">1200</span>
 
-        <span class="n">events</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query_export</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">add_gzip_header</span><span class="o">=</span><span class="n">add_gzip_header</span><span class="p">)</span>
+        <span class="n">request_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">request_per_day</span><span class="p">:</span>
+            <span class="n">date_format</span> <span class="o">=</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">&#39;</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;from_date&#39;</span><span class="p">],</span> <span class="n">date_format</span><span class="p">)</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;to_date&#39;</span><span class="p">],</span> <span class="n">date_format</span><span class="p">)</span>
+            <span class="n">delta</span> <span class="o">=</span> <span class="n">t</span> <span class="o">-</span> <span class="n">f</span>
+            <span class="n">request_count</span> <span class="o">=</span> <span class="n">delta</span><span class="o">.</span><span class="n">days</span>
 
-        <span class="k">if</span> <span class="n">timezone_offset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="c1"># Convert timezone_offset from hours to seconds</span>
-            <span class="n">timezone_offset</span> <span class="o">=</span> <span class="n">timezone_offset</span> <span class="o">*</span> <span class="mi">3600</span>
-            <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">events</span><span class="p">:</span>
-                <span class="n">event</span><span class="p">[</span><span class="s1">&#39;properties&#39;</span><span class="p">][</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">event</span><span class="p">[</span><span class="s1">&#39;properties&#39;</span><span class="p">][</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">timezone_offset</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">request_count</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">params_copy</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+            <span class="n">current_file</span> <span class="o">=</span> <span class="n">output_file</span>
 
-        <span class="n">Mixpanel</span><span class="o">.</span><span class="n">export_data</span><span class="p">(</span><span class="n">events</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="n">compress</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">request_per_day</span><span class="p">:</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;from_date&#39;</span><span class="p">],</span> <span class="n">date_format</span><span class="p">)</span>
+                <span class="n">current_day</span> <span class="o">=</span> <span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">tm_year</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">tm_mon</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">tm_mday</span><span class="p">)</span> <span class="o">+</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">x</span><span class="p">))</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span>
+                    <span class="n">date_format</span><span class="p">)</span>
+                <span class="n">file_components</span> <span class="o">=</span> <span class="n">output_file</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+                <span class="n">current_file</span> <span class="o">=</span> <span class="n">file_components</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">current_day</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">file_components</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">current_file</span> <span class="o">=</span> <span class="n">current_file</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span> <span class="o">+</span> <span class="n">file_components</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">params_copy</span><span class="p">[</span><span class="s1">&#39;from_date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_day</span>
+                <span class="n">params_copy</span><span class="p">[</span><span class="s1">&#39;to_date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_day</span>
 
-        <span class="c1"># If we modified the default timeout above, set it back</span>
+            <span class="n">events</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query_export</span><span class="p">(</span><span class="n">params_copy</span><span class="p">,</span> <span class="n">add_gzip_header</span><span class="o">=</span><span class="n">add_gzip_header</span><span class="p">,</span> <span class="n">raw_stream</span><span class="o">=</span><span class="n">raw_stream</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">raw_stream</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">add_gzip_header</span> <span class="ow">and</span> <span class="n">current_file</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span> <span class="o">!=</span> <span class="s1">&#39;.gz&#39;</span><span class="p">:</span>
+                    <span class="n">current_file</span> <span class="o">=</span> <span class="n">current_file</span> <span class="o">+</span> <span class="s1">&#39;.gz&#39;</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">current_file</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+                    <span class="n">shutil</span><span class="o">.</span><span class="n">copyfileobj</span><span class="p">(</span><span class="n">events</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">buffer_size</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">timezone_offset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># Convert timezone_offset from hours to seconds</span>
+                    <span class="n">timezone_offset</span> <span class="o">=</span> <span class="n">timezone_offset</span> <span class="o">*</span> <span class="mi">3600</span>
+                    <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">events</span><span class="p">:</span>
+                        <span class="n">event</span><span class="p">[</span><span class="s1">&#39;properties&#39;</span><span class="p">][</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">event</span><span class="p">[</span><span class="s1">&#39;properties&#39;</span><span class="p">][</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">timezone_offset</span><span class="p">)</span>
+
+                <span class="n">Mixpanel</span><span class="o">.</span><span class="n">export_data</span><span class="p">(</span><span class="n">events</span><span class="p">,</span> <span class="n">current_file</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="n">compress</span><span class="p">)</span>
+
+        <span class="c1"># If we modified the default timeout above, restore default setting</span>
         <span class="k">if</span> <span class="n">timeout_backup</span> <span class="o">==</span> <span class="mi">120</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="o">=</span> <span class="n">timeout_backup</span></div>
 
@@ -1144,7 +1245,7 @@
             <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
                 <span class="n">row</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="k">try</span><span class="p">:</span>
-                    <span class="n">row</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="n">initial_header_value</span><span class="p">])</span>
+                    <span class="n">row</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">item</span><span class="p">[</span><span class="n">initial_header_value</span><span class="p">])</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
                 <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
                     <span class="n">row</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
 
@@ -1154,7 +1255,7 @@
                     <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
                         <span class="n">row</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="n">props_key</span><span class="p">][</span><span class="n">subkey</span><span class="p">])</span>
                     <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-                        <span class="n">row</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+                        <span class="n">row</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
                 <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">row</span><span class="p">)</span></div>
 
     <span class="nd">@staticmethod</span>
@@ -1493,7 +1594,7 @@
         <span class="n">pool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
         <span class="n">pool</span><span class="o">.</span><span class="n">join</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="Mixpanel._send_batch"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel._send_batch">[docs]</a>    <span class="k">def</span> <span class="nf">_send_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_url</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">dataset_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataset_version</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="Mixpanel._send_batch"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel._send_batch">[docs]</a>    <span class="k">def</span> <span class="nf">_send_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_url</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">dataset_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataset_version</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;POST a single batch of data to a Mixpanel API and return the response</span>
 
 <span class="sd">        :param base_url: The base API url</span>
@@ -1502,43 +1603,27 @@
 <span class="sd">        :param dataset_id: Dataset name to import into, required if dataset_version is specified, otherwise optional</span>
 <span class="sd">        :param dataset_version: Dataset version to import into, required if dataset_id is specified, otherwise</span>
 <span class="sd">            optional</span>
-<span class="sd">        :param retries:  Max number of times to retry if we get a HTTP 503 response (Default value = 0)</span>
 <span class="sd">        :type base_url: str</span>
 <span class="sd">        :type endpoint: str</span>
 <span class="sd">        :type batch: list</span>
 <span class="sd">        :type dataset_id: str</span>
 <span class="sd">        :type dataset_version: str</span>
-<span class="sd">        :type retries: int</span>
-<span class="sd">        :raise: Raises for any HTTP error other than 503</span>
 <span class="sd">        :return: HTTP response from Mixpanel API</span>
 <span class="sd">        :rtype: str</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">batch</span><span class="p">))}</span>
-            <span class="k">if</span> <span class="n">dataset_id</span><span class="p">:</span>
-                <span class="n">params</span><span class="p">[</span><span class="s1">&#39;dataset_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataset_id</span>
-                <span class="n">params</span><span class="p">[</span><span class="s1">&#39;token&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span>
-            <span class="k">if</span> <span class="n">dataset_version</span><span class="p">:</span>
-                <span class="n">params</span><span class="p">[</span><span class="s1">&#39;dataset_version&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataset_version</span>
-            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="p">[</span><span class="n">endpoint</span><span class="p">],</span> <span class="n">params</span><span class="p">,</span> <span class="s1">&#39;POST&#39;</span><span class="p">)</span>
-            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Sent &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot; items on &quot;</span> <span class="o">+</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;!&quot;</span>
-            <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">response</span>
-        <span class="k">except</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">HTTPError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
-            <span class="c1"># In the event of a 503 we will try to send again</span>
-            <span class="k">if</span> <span class="n">err</span><span class="o">.</span><span class="n">code</span> <span class="o">==</span> <span class="mi">503</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">retries</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_retries</span><span class="p">:</span>
-                    <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;HTTP Error 503: Retry #&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">retries</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_send_batch</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">dataset_id</span><span class="o">=</span><span class="n">dataset_id</span><span class="p">,</span>
-                                     <span class="n">dataset_version</span><span class="o">=</span><span class="n">dataset_version</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="n">retries</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Failed to import batch, dumping to file import_backup.txt&quot;</span><span class="p">)</span>
-                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;import_backup.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">backup</span><span class="p">:</span>
-                        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">backup</span><span class="p">)</span>
-                        <span class="n">backup</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span></div>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">batch</span><span class="p">))}</span>
+        <span class="k">if</span> <span class="n">dataset_id</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s1">&#39;dataset_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataset_id</span>
+            <span class="n">params</span><span class="p">[</span><span class="s1">&#39;token&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span>
+        <span class="k">if</span> <span class="n">dataset_version</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s1">&#39;dataset_version&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataset_version</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="p">[</span><span class="n">endpoint</span><span class="p">],</span> <span class="n">params</span><span class="p">,</span> <span class="s1">&#39;POST&#39;</span><span class="p">)</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Sent &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot; items on &quot;</span> <span class="o">+</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;!&quot;</span>
+        <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">response</span></div>
+
+
 
 <div class="viewcode-block" id="Mixpanel._import_data"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel._import_data">[docs]</a>    <span class="k">def</span> <span class="nf">_import_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">base_url</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">,</span> <span class="n">timezone_offset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dataset_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">dataset_version</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">raw_record_import</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -1663,7 +1748,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">mixpanel_api 1.2.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">mixpanel_api 1.6.0 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li> 
       </ul>
     </div>

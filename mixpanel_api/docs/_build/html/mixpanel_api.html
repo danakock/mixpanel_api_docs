@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>mixpanel_api package &#8212; mixpanel_api 1.2.0 documentation</title>
+    <title>mixpanel_api package &#8212; mixpanel_api 1.6.0 documentation</title>
     
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '1.2.0',
+        VERSION:     '1.6.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true,
@@ -42,7 +42,7 @@
         <li class="right" >
           <a href="index.html" title="Welcome to mixpanel_api’s documentation!"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">mixpanel_api 1.2.0 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">mixpanel_api 1.6.0 documentation</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -428,7 +428,7 @@ to use</li>
 
 <dl class="method">
 <dt id="mixpanel_api.Mixpanel._send_batch">
-<code class="descname">_send_batch</code><span class="sig-paren">(</span><em>base_url</em>, <em>endpoint</em>, <em>batch</em>, <em>dataset_id=None</em>, <em>dataset_version=None</em>, <em>retries=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/mixpanel_api.html#Mixpanel._send_batch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mixpanel_api.Mixpanel._send_batch" title="Permalink to this definition">¶</a></dt>
+<code class="descname">_send_batch</code><span class="sig-paren">(</span><em>base_url</em>, <em>endpoint</em>, <em>batch</em>, <em>dataset_id=None</em>, <em>dataset_version=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/mixpanel_api.html#Mixpanel._send_batch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mixpanel_api.Mixpanel._send_batch" title="Permalink to this definition">¶</a></dt>
 <dd><p>POST a single batch of data to a Mixpanel API and return the response</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -441,17 +441,13 @@ to use</li>
 <li><strong>dataset_id</strong> (<em>str</em>) &#8211; Dataset name to import into, required if dataset_version is specified, otherwise optional</li>
 <li><strong>dataset_version</strong> (<em>str</em>) &#8211; Dataset version to import into, required if dataset_id is specified, otherwise
 optional</li>
-<li><strong>retries</strong> (<em>int</em>) &#8211; Max number of times to retry if we get a HTTP 503 response (Default value = 0)</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Raise:</th><td class="field-body"><p class="first">Raises for any HTTP error other than 503</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">HTTP response from Mixpanel API</p>
 </td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">HTTP response from Mixpanel API</p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">str</p>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">str</p>
 </td>
 </tr>
 </tbody>
@@ -521,7 +517,7 @@ the remaining profile using $set_once. Backup files are always created.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>profiles</strong> (<em>list | str</em>) &#8211; Can be a list of profiles or the name of a file containing a JSON array or CSV of profiles. If
 this is None all profiles with prop_to_match set will be downloaded. (Default value = None)</li>
 <li><strong>prop_to_match</strong> (<em>str</em>) &#8211; Name of property whose value will be used to determine duplicates
@@ -533,6 +529,12 @@ preserved. (Default value = False)</li>
 <li><strong>backup</strong> (<em>bool</em>) &#8211; True to create backup file otherwise False (default)</li>
 <li><strong>backup_file</strong> (<em>str</em>) &#8211; Optional filename to use for the backup file (Default value = None)</li>
 </ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Number of profiles deleted</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">int</p>
 </td>
 </tr>
 </tbody>
@@ -565,10 +567,16 @@ preserved. (Default value = False)</li>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>from_date</strong> (<em>datetime | str</em>) &#8211; A datetime or a date string of format YYYY-MM-DD to begin counting from</li>
 <li><strong>events</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em></em>) &#8211; A list of strings of event names to be counted</li>
 </ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Number of profiles operated on</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">int</p>
 </td>
 </tr>
 </tbody>
@@ -597,7 +605,7 @@ preserved. (Default value = False)</li>
 
 <dl class="method">
 <dt id="mixpanel_api.Mixpanel.export_events">
-<code class="descname">export_events</code><span class="sig-paren">(</span><em>output_file</em>, <em>params</em>, <em>format='json'</em>, <em>timezone_offset=None</em>, <em>add_gzip_header=False</em>, <em>compress=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/mixpanel_api.html#Mixpanel.export_events"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mixpanel_api.Mixpanel.export_events" title="Permalink to this definition">¶</a></dt>
+<code class="descname">export_events</code><span class="sig-paren">(</span><em>output_file</em>, <em>params</em>, <em>format='json'</em>, <em>timezone_offset=None</em>, <em>add_gzip_header=False</em>, <em>compress=False</em>, <em>request_per_day=False</em>, <em>raw_stream=False</em>, <em>buffer_size=1024</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/mixpanel_api.html#Mixpanel.export_events"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mixpanel_api.Mixpanel.export_events" title="Permalink to this definition">¶</a></dt>
 <dd><p>Queries the /export API and writes the Mixpanel event data to disk as a JSON or CSV file. Optionally gzip file.</p>
 <p><a class="reference external" href="https://mixpanel.com/help/reference/exporting-raw-data#export-api-reference">https://mixpanel.com/help/reference/exporting-raw-data#export-api-reference</a></p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -612,6 +620,11 @@ preserved. (Default value = False)</li>
 timestamps from project time to UTC</li>
 <li><strong>add_gzip_header</strong> (<em>bool</em>) &#8211; Adds &#8216;Accept-encoding: gzip&#8217; to the request headers (Default value = False)</li>
 <li><strong>compress</strong> (<em>bool</em>) &#8211; Option to gzip output_file (Default value = False)</li>
+<li><strong>request_per_day</strong> (<em>bool</em>) &#8211; Option to make one API request (and output file) per day in the exported date range
+(Default value = False)</li>
+<li><strong>raw_stream</strong> (<em>bool</em>) &#8211; Option to stream the newline delimited JSON response directly to output_file. If True, format
+, timezone_offset and compress arguments are ignored (Default value = False)</li>
+<li><strong>buffer_size</strong> (<em>int</em>) &#8211; Buffer size in bytes to use if raw_stream is True (Default value = 1024)</li>
 </ul>
 </td>
 </tr>
@@ -709,7 +722,7 @@ optional</li>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>jql_script</strong> (<em>str</em>) &#8211; String containing a JQL script to run. The result should be an array of objects. Those
 objects should contain at least a $distinct_id key</li>
 <li><strong>people_operation</strong> (<em>str</em>) &#8211; A Mixpanel People update operation</li>
@@ -723,6 +736,12 @@ value at the dict&#8217;s &#8216;value&#8217; key.</li>
 <li><strong>backup</strong> (<em>bool</em>) &#8211; True to create backup file otherwise False (default)</li>
 <li><strong>backup_file</strong> (<em>str</em>) &#8211; Optional filename to use for the backup file (Default value = None)</li>
 </ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Number of profiles operated on</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">int</p>
 </td>
 </tr>
 </tbody>
@@ -797,7 +816,7 @@ backup file</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>value</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>float</em><em>] </em><em>|</em><em> (</em><em>profile</em><em>) </em><em>-&gt; dict</em><em>[</em><em>str</em><em>, </em><em>float</em><em>]</em><em></em>) &#8211; Can be a static value applied to all profiles or a user-defined function (or lambda) that takes a
 profile as its only parameter and returns the value to use for the operation on the given profile</li>
 <li><strong>profiles</strong> (<em>list | str</em>) &#8211; Can be a list of profiles or the name of a file containing a JSON array or CSV of profiles.
@@ -809,6 +828,12 @@ parameter for queries that use behaviors. Required if query_params contains beha
 <li><strong>backup</strong> (<em>bool</em>) &#8211; True to create backup file otherwise False (default)</li>
 <li><strong>backup_file</strong> (<em>str</em>) &#8211; Optional filename to use for the backup file (Default value = None)</li>
 </ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Number of profiles operated on</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">int</p>
 </td>
 </tr>
 </tbody>
@@ -824,7 +849,7 @@ a backup file.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>value</strong> (<em>dict |</em><em> (</em><em>profile</em><em>) </em><em>-&gt; dict</em>) &#8211; Can be a static value applied to all profiles or a user-defined function (or lambda) that takes a
 profile as its only parameter and returns the value to use for the operation on the given profile</li>
 <li><strong>profiles</strong> (<em>list | str</em>) &#8211; Can be a list of profiles or the name of a file containing a JSON array or CSV of profiles.
@@ -836,6 +861,12 @@ parameter for queries that use behaviors. Required if query_params contains beha
 <li><strong>backup</strong> (<em>bool</em>) &#8211; True to create backup file otherwise False (default)</li>
 <li><strong>backup_file</strong> (<em>str</em>) &#8211; Optional filename to use for the backup file (Default value = None)</li>
 </ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Number of profiles operated on</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">int</p>
 </td>
 </tr>
 </tbody>
@@ -851,7 +882,7 @@ Optionally creates a backup file.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>old_name</strong> &#8211; The name of an existing property.</li>
 <li><strong>new_name</strong> &#8211; The new name to replace the old_name with</li>
 <li><strong>profiles</strong> (<em>list | str</em>) &#8211; Can be a list of profiles or the name of a file containing a JSON array or CSV of profiles.
@@ -867,6 +898,12 @@ parameter for queries that use behaviors. Required if query_params contains beha
 </ul>
 </td>
 </tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Number of profiles operated on</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">int</p>
+</td>
+</tr>
 </tbody>
 </table>
 </dd></dl>
@@ -879,7 +916,7 @@ parameter for queries that use behaviors. Required if query_params contains beha
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>profiles</strong> (<em>list | str</em>) &#8211; Can be a list of profiles or the name of a file containing a JSON array or CSV of profiles.
 Alternative to query_params. (Default value = None)</li>
 <li><strong>query_params</strong> (<em>dict</em>) &#8211; Parameters to query /engage API. Alternative to profiles param. (Default value = None)</li>
@@ -889,6 +926,12 @@ parameter for queries that use behaviors. Required if query_params contains beha
 <li><strong>backup</strong> (<em>bool</em>) &#8211; True to create backup file otherwise False (default)</li>
 <li><strong>backup_file</strong> (<em>str</em>) &#8211; Optional filename to use for the backup file (Default value = None)</li>
 </ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Number of profiles deleted</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">int</p>
 </td>
 </tr>
 </tbody>
@@ -904,7 +947,7 @@ parameter for queries that use behaviors. Required if query_params contains beha
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>operation</strong> (<em>str</em>) &#8211; A string with name of a Mixpanel People operation, like $set or $delete</li>
 <li><strong>value</strong> &#8211; Can be a static value applied to all profiles or a user-defined function (or lambda) that takes a
 profile as its only parameter and returns the value to use for the operation on the given profile</li>
@@ -917,6 +960,12 @@ parameter for queries that use behaviors. Required if query_params contains beha
 <li><strong>backup</strong> (<em>bool</em>) &#8211; True to create backup file otherwise False (default)</li>
 <li><strong>backup_file</strong> (<em>str</em>) &#8211; Optional filename to use for the backup file (Default value = None)</li>
 </ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Number of profiles operated on</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">int</p>
 </td>
 </tr>
 </tbody>
@@ -932,7 +981,7 @@ creates a backup file</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>value</strong> (<em>dict |</em><em> (</em><em>profile</em><em>) </em><em>-&gt; dict</em>) &#8211; Can be a static value applied to all profiles or a user-defined function (or lambda) that takes a
 profile as its only parameter and returns the value to use for the operation on the given profile</li>
 <li><strong>profiles</strong> (<em>list | str</em>) &#8211; Can be a list of profiles or the name of a file containing a JSON array or CSV of profiles.
@@ -944,6 +993,12 @@ parameter for queries that use behaviors. Required if query_params contains beha
 <li><strong>backup</strong> (<em>bool</em>) &#8211; True to create backup file otherwise False (default)</li>
 <li><strong>backup_file</strong> (<em>str</em>) &#8211; Optional filename to use for the backup file (Default value = None)</li>
 </ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Number of profiles operated on</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">int</p>
 </td>
 </tr>
 </tbody>
@@ -959,7 +1014,7 @@ optionally creates a backup file</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>profiles</strong> (<em>list | str</em>) &#8211; Can be a list of profiles or the name of a file containing a JSON array or CSV of profiles.
 Alternative to query_params. (Default value = None)</li>
 <li><strong>query_params</strong> (<em>dict</em>) &#8211; Parameters to query /engage API. Alternative to profiles param. If both query_params and
@@ -970,6 +1025,12 @@ parameter for queries that use behaviors. Required if query_params contains beha
 <li><strong>backup</strong> (<em>bool</em>) &#8211; True to create backup file otherwise False (default)</li>
 <li><strong>backup_file</strong> (<em>str</em>) &#8211; Optional filename to use for the backup file (Default value = None)</li>
 </ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Number of profiles operated on</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">int</p>
 </td>
 </tr>
 </tbody>
@@ -984,7 +1045,7 @@ parameter for queries that use behaviors. Required if query_params contains beha
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>value</strong> &#8211; Can be a static value applied to all profiles or a user-defined function (or lambda) that takes a
 profile as its only parameter and returns the value to use for the operation on the given profile</li>
 <li><strong>profiles</strong> (<em>list | str</em>) &#8211; Can be a list of profiles or the name of a file containing a JSON array or CSV of profiles.
@@ -996,6 +1057,12 @@ parameter for queries that use behaviors. Required if query_params contains beha
 <li><strong>backup</strong> (<em>bool</em>) &#8211; True to create backup file otherwise False (default)</li>
 <li><strong>backup_file</strong> (<em>str</em>) &#8211; Optional filename to use for the backup file (Default value = None)</li>
 </ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Number of profiles operated on</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">int</p>
 </td>
 </tr>
 </tbody>
@@ -1011,7 +1078,7 @@ operation and optionally creates a backup file</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>value</strong> &#8211; Can be a static value applied to all profiles or a user-defined function (or lambda) that takes a
 profile as its only parameter and returns the value to use for the operation on the given profile</li>
 <li><strong>profiles</strong> (<em>list | str</em>) &#8211; Can be a list of profiles or the name of a file containing a JSON array or CSV of profiles.
@@ -1023,6 +1090,12 @@ parameter for queries that use behaviors. Required if query_params contains beha
 <li><strong>backup</strong> (<em>bool</em>) &#8211; True to create backup file otherwise False (default)</li>
 <li><strong>backup_file</strong> (<em>str</em>) &#8211; Optional filename to use for the backup file (Default value = None)</li>
 </ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Number of profiles operated on</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">int</p>
 </td>
 </tr>
 </tbody>
@@ -1038,7 +1111,7 @@ create a backup file</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>value</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>list</em><em>] </em><em>|</em><em> (</em><em>profile</em><em>) </em><em>-&gt; dict</em><em>[</em><em>str</em><em>, </em><em>list</em><em>]</em><em></em>) &#8211; Can be a static value applied to all profiles or a user-defined function (or lambda) that takes a
 profile as its only parameter and returns the value to use for the operation on the given profile</li>
 <li><strong>profiles</strong> (<em>list | str</em>) &#8211; Can be a list of profiles or the name of a file containing a JSON array or CSV of profiles.
@@ -1050,6 +1123,12 @@ parameter for queries that use behaviors. Required if query_params contains beha
 <li><strong>backup</strong> (<em>bool</em>) &#8211; True to create backup file otherwise False (default)</li>
 <li><strong>backup_file</strong> (<em>str</em>) &#8211; Optional filename to use for the backup file (Default value = None)</li>
 </ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Number of profiles operated on</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">int</p>
 </td>
 </tr>
 </tbody>
@@ -1064,7 +1143,7 @@ parameter for queries that use behaviors. Required if query_params contains beha
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>value</strong> (<em>list |</em><em> (</em><em>profile</em><em>) </em><em>-&gt; list</em>) &#8211; Can be a static value applied to all profiles or a user-defined function (or lambda) that takes a
 profile as its only parameter and returns the value to use for the operation on the given profile</li>
 <li><strong>profiles</strong> (<em>list | str</em>) &#8211; Can be a list of profiles or the name of a file containing a JSON array or CSV of profiles.
@@ -1076,6 +1155,12 @@ parameter for queries that use behaviors. Required if query_params contains beha
 <li><strong>backup</strong> (<em>bool</em>) &#8211; True to create backup file otherwise False (default)</li>
 <li><strong>backup_file</strong> (<em>str</em>) &#8211; Optional filename to use for the backup file (Default value = None)</li>
 </ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Number of profiles operated on</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">int</p>
 </td>
 </tr>
 </tbody>
@@ -1114,7 +1199,7 @@ parameter for queries that use behaviors. Required if query_params contains beha
 
 <dl class="method">
 <dt id="mixpanel_api.Mixpanel.query_export">
-<code class="descname">query_export</code><span class="sig-paren">(</span><em>params</em>, <em>add_gzip_header=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/mixpanel_api.html#Mixpanel.query_export"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mixpanel_api.Mixpanel.query_export" title="Permalink to this definition">¶</a></dt>
+<code class="descname">query_export</code><span class="sig-paren">(</span><em>params</em>, <em>add_gzip_header=False</em>, <em>raw_stream=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/mixpanel_api.html#Mixpanel.query_export"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mixpanel_api.Mixpanel.query_export" title="Permalink to this definition">¶</a></dt>
 <dd><p>Queries the /export API and returns a list of Mixpanel event dicts</p>
 <p><a class="reference external" href="https://mixpanel.com/help/reference/exporting-raw-data#export-api-reference">https://mixpanel.com/help/reference/exporting-raw-data#export-api-reference</a></p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1124,6 +1209,7 @@ parameter for queries that use behaviors. Required if query_params contains beha
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>params</strong> (<em>dict</em>) &#8211; Parameters to use for the /export API request</li>
 <li><strong>add_gzip_header</strong> (<em>bool</em>) &#8211; Adds &#8216;Accept-encoding: gzip&#8217; to the request headers (Default value = False)</li>
+<li><strong>raw_stream</strong> (<em>bool</em>) &#8211; Returns the raw file-like response directly from urlopen instead of creating a list</li>
 </ul>
 </td>
 </tr>
@@ -1158,7 +1244,7 @@ parameter for queries that use behaviors. Required if query_params contains beha
 
 <dl class="method">
 <dt id="mixpanel_api.Mixpanel.request">
-<code class="descname">request</code><span class="sig-paren">(</span><em>base_url</em>, <em>path_components</em>, <em>params</em>, <em>method='GET'</em>, <em>headers=None</em>, <em>retries=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/mixpanel_api.html#Mixpanel.request"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mixpanel_api.Mixpanel.request" title="Permalink to this definition">¶</a></dt>
+<code class="descname">request</code><span class="sig-paren">(</span><em>base_url</em>, <em>path_components</em>, <em>params</em>, <em>method='GET'</em>, <em>headers=None</em>, <em>raw_stream=False</em>, <em>retries=0</em>, <em>delay=2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/mixpanel_api.html#Mixpanel.request"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mixpanel_api.Mixpanel.request" title="Permalink to this definition">¶</a></dt>
 <dd><p>Base method for sending HTTP requests to the various Mixpanel APIs</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1170,7 +1256,11 @@ parameter for queries that use behaviors. Required if query_params contains beha
 <li><strong>params</strong> (<em>dict</em>) &#8211; dictionary containing the Mixpanel parameters for the API request</li>
 <li><strong>method</strong> (<em>str</em>) &#8211; HTTP method verb: &#8216;GET&#8217;, &#8216;POST&#8217;, &#8216;PUT&#8217;, &#8216;DELETE&#8217;, &#8216;PATCH&#8217;</li>
 <li><strong>headers</strong> (<em>dict</em>) &#8211; HTTP request headers dict (Default value = None)</li>
-<li><strong>retries</strong> (<em>int</em>) &#8211; number of times the request has been retried (Default value = 0)</li>
+<li><strong>raw_stream</strong> (<em>bool</em>) &#8211; Return the raw file-like response directly from urlopen, only works when base_url is
+Mixpanel.RAW_API</li>
+<li><strong>retries</strong> (<em>int</em>) &#8211; number of times the request has been retried due to HTTP 5xx error (Default value = 0)</li>
+<li><strong>delay</strong> (<em>int</em>) &#8211; Amount of time to wait between retries in seconds. Increases exponentially with each retry until
+it reaches the max delay of 10. (Default value = 2)</li>
 </ul>
 </td>
 </tr>
@@ -1309,7 +1399,7 @@ found</td>
         <li class="right" >
           <a href="index.html" title="Welcome to mixpanel_api’s documentation!"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">mixpanel_api 1.2.0 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">mixpanel_api 1.6.0 documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
