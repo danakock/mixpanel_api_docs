@@ -2,6 +2,7 @@ import base64
 import urllib  # for url encoding
 import urllib2  # for sending requests
 from httplib import IncompleteRead
+from ssl import SSLError
 import cStringIO
 import logging
 import gzip
@@ -15,7 +16,11 @@ from multiprocessing.pool import ThreadPool
 from paginator import ConcurrentPaginator
 from ast import literal_eval
 from copy import deepcopy
-import csv
+
+try:
+    import unicodecsv as csv
+except ImportError:
+    import csv
 
 try:
     import ujson as json
@@ -50,16 +55,17 @@ class Mixpanel(object):
     """
 
     def __init__(self, api_secret, token=None, dataset_id=None, timeout=120, pool_size=None,
-                 read_pool_size=None, max_retries=10, debug=False):
+                 read_pool_size=2, max_retries=4, debug=False):
         """Initializes the Mixpanel object
 
         :param api_secret: API Secret for your project
         :param token: Project Token for your project, required for imports
         :param dataset_id: The name of the dataset to operate on
         :param timeout: Time in seconds to wait for HTTP responses
-        :param pool_size: Number of threads to use for multiprocessing, default is cpu_count * 2
-        :param read_pool_size: Optional separate number of threads to use just for read operations (i.e. query_engage)
-        :param max_retries: Maximum number of times to retry when a 503 HTTP response is received
+        :param pool_size: Number of threads to use for sending data to Mixpanel (Default value = cpu_count * 2)
+        :param read_pool_size: Separate number of threads to use just for read operations (i.e. query_engage)
+            (Default value = 2)
+        :param max_retries: Maximum number of times to retry when a 5xx HTTP response is received (Default value = 4)
         :param debug: Enable debug logging
         :type api_secret: str
         :type token: str
@@ -79,14 +85,12 @@ class Mixpanel(object):
         if pool_size is None:
             # Default number of threads is system dependent
             pool_size = cpu_count() * 2
-        if read_pool_size is None:
-            read_pool_size = pool_size
         self.pool_size = pool_size
         self.read_pool_size = read_pool_size
         self.max_retries = max_retries
         log_level = Mixpanel.LOGGER.getEffectiveLevel()
         ''' The logger is a singleton for the Mixpanel class, so multiple instances of the Mixpanel class will use the
-        same logger. Subsequent instances can upgrade the logging level to debug but they cannot downgrade it.
+        same logger instance. Subsequent instances can upgrade the logging level to debug but they cannot downgrade it.
         '''
         if debug or log_level == 10:
             Mixpanel.LOGGER.setLevel(logging.DEBUG)
@@ -94,20 +98,26 @@ class Mixpanel(object):
             Mixpanel.LOGGER.setLevel(logging.WARNING)
 
     @staticmethod
-    def export_data(data, output_file, format='json', compress=False):
+    def export_data(data, output_file, append_mode=False, format='json', compress=False):
         """Writes and optionally compresses Mixpanel data to disk in json or csv format
 
         :param data: A list of Mixpanel events or People profiles, if format='json', arbitrary json can be exported
         :param output_file: Name of file to write to
+        :param append_mode: Set this to True to append data to an existing file using open() mode 'a+', uses open() mode
+            'w+' when False (Default value = False)
         :param format:  Output format can be 'json' or 'csv' (Default value = 'json')
         :param compress:  Option to gzip output (Default value = False)
         :type data: list
         :type output_file: str
+        :type append_mode: bool
         :type format: str
         :type compress: bool
 
         """
-        with open(output_file, 'w+') as output:
+        open_mode = 'w+'
+        if append_mode:
+            open_mode = 'a+'
+        with open(output_file, open_mode) as output:
             if format == 'json':
                 json.dump(data, output)
             elif format == 'csv':
@@ -142,8 +152,7 @@ class Mixpanel(object):
             pass
         return {'Revenue': total}
 
-    def request(self, base_url, path_components, params, method='GET', headers=None, raw_stream=False, retries=0,
-                delay=2):
+    def request(self, base_url, path_components, params, method='GET', headers=None, raw_stream=False, retries=0):
         """Base method for sending HTTP requests to the various Mixpanel APIs
 
         :param base_url: Ex: https://api.mixpanel.com
@@ -153,9 +162,7 @@ class Mixpanel(object):
         :param headers: HTTP request headers dict (Default value = None)
         :param raw_stream: Return the raw file-like response directly from urlopen, only works when base_url is
             Mixpanel.RAW_API
-        :param retries: number of times the request has been retried due to HTTP 5xx error (Default value = 0)
-        :param delay: Amount of time to wait between retries in seconds. Increases exponentially with each retry until
-            it reaches the max delay of 10. (Default value = 2)
+        :param retries: number of times the request has been retried (Default value = 0)
         :type base_url: str
         :type path_components: list
         :type params: dict
@@ -163,7 +170,6 @@ class Mixpanel(object):
         :type headers: dict
         :type raw_stream: bool
         :type retries: int
-        :type delay: int
         :return: JSON data returned from API
         :rtype: str
 
@@ -212,19 +218,30 @@ class Mixpanel(object):
                 Mixpanel.LOGGER.warning('Reason: ' + str(e.reason))
                 if hasattr(e, 'read'):
                     Mixpanel.LOGGER.warning('Response: ' + e.read())
-                if 500 <= e.code <= 599:
-                    Mixpanel.LOGGER.warning("Attempting Retry #" + str(retries + 1))
-                    time.sleep(delay)
-                    if delay < 10:
-                        delay *= 2
-                    self.request(base_url, path_components, params, method=method, headers=headers, raw_stream=raw_stream, retries=retries+1, delay=delay)
-                else:
-                    raise
+                if e.code >= 500:
+                    # Retry if we get an HTTP 5xx error
+                    Mixpanel.LOGGER.warning("Attempting retry #" + str(retries + 1))
+                    self.request(base_url, path_components, params, method=method, headers=headers,
+                                 raw_stream=raw_stream, retries=retries + 1)
             except urllib2.URLError as e:
                 Mixpanel.LOGGER.warning('We failed to reach a server.')
                 Mixpanel.LOGGER.warning('Reason: ' + str(e.reason))
                 if hasattr(e, 'read'):
                     Mixpanel.LOGGER.warning('Response: ' + e.read())
+                Mixpanel.LOGGER.warning("Attempting retry #" + str(retries + 1))
+                self.request(base_url, path_components, params, method=method, headers=headers, raw_stream=raw_stream,
+                             retries=retries + 1)
+            except SSLError as e:
+                if e.message == 'The read operation timed out':
+                    Mixpanel.LOGGER.warning('The read operation timed out.')
+                    self.timeout = self.timeout + 30
+                    Mixpanel.LOGGER.warning(
+                        'Increasing timeout to ' + str(self.timeout) + ' and attempting retry #' + str(retries + 1))
+                    self.request(base_url, path_components, params, method=method, headers=headers,
+                                 raw_stream=raw_stream, retries=retries + 1)
+                else:
+                    raise
+
             else:
                 try:
                     # If the response is gzipped we go ahead and decompress
@@ -237,16 +254,11 @@ class Mixpanel(object):
                     return response_data
                 except IncompleteRead as e:
                     Mixpanel.LOGGER.warning("Response data is incomplete. Attempting retry #" + str(retries + 1))
-                    self.request(base_url, path_components, params, method=method, retries=retries + 1)
+                    self.request(base_url, path_components, params, method=method, headers=headers,
+                                 raw_stream=raw_stream, retries=retries + 1)
         else:
-            Mixpanel.LOGGER.warning("Maximum retries reached. Request failed.")
-            Mixpanel.LOGGER.warning("The server may be overloaded. Try again later.")
-            if base_url == Mixpanel.IMPORT_API or base_url == Mixpanel.BETA_IMPORT_API:
-                Mixpanel.LOGGER.warning("Failed to import batch, dumping to file import_backup.txt")
-                with open('import_backup.txt', 'a') as backup:
-                    json.dump(base64.b64decode(params['data']), backup)
-                    backup.write('\n')
-            return
+            Mixpanel.LOGGER.warning("Maximum retries reached. Request failed. Try again later.")
+            raise BaseException
 
     def people_operation(self, operation, value, profiles=None, query_params=None, timezone_offset=None,
                          ignore_alias=False, backup=False, backup_file=None):
@@ -292,7 +304,7 @@ class Mixpanel(object):
         if backup:
             if backup_file is None:
                 backup_file = "backup_" + str(int(time.time())) + ".json"
-            self.export_data(profiles_list, backup_file)
+            self.export_data(profiles_list, backup_file, append_mode=True)
 
         # Set the dynamic flag to True if value is a function
         dynamic = isfunction(value)
@@ -318,6 +330,7 @@ class Mixpanel(object):
         :param backup_file: Optional filename to use for the backup file (Default value = None)
         :type profiles: list | str
         :type query_params: dict
+        :type ignore_alias: bool
         :type timezone_offset: int | float
         :type backup: bool
         :type backup_file: str
@@ -647,7 +660,7 @@ class Mixpanel(object):
         if backup:
             if backup_file is None:
                 backup_file = "backup_" + str(int(time.time())) + ".json"
-            self.export_data(profiles_list, backup_file)
+            self.export_data(profiles_list, backup_file, append_mode=True)
 
         for profile in profiles_list:
             try:
@@ -694,23 +707,31 @@ class Mixpanel(object):
 
         return self.people_operation('$delete', '', profiles=delete_profiles, ignore_alias=True, backup=False)
 
-    def query_jql(self, script, params=None):
+    def query_jql(self, script, params=None, format='json'):
         """Query the Mixpanel JQL API
 
         https://mixpanel.com/help/reference/jql/api-reference#api/access
 
         :param script: String containing a JQL script to run
         :param params: Optional dict that will be made available to the script as the params global variable.
+        :param format: Output format can be either 'json' or 'csv'
         :type script: str
         :type params: dict
+        :type format: str
+        :return: query output as json or a csv str
 
         """
-        query_params = {"script": script}
+        query_params = {"script": script, 'format': format}
+        if format == 'csv':
+            query_params['download_file'] = 'foo.csv'
         if params is not None:
             query_params["params"] = json.dumps(params)
 
         response = self.request(Mixpanel.FORMATTED_API, ['jql'], query_params, method='POST')
-        return json.loads(response)
+        if format == 'json':
+            return json.loads(response)
+        else:
+            return response
 
     def jql_operation(self, jql_script, people_operation, update_value=lambda x: x['value'], jql_params=None,
                       ignore_alias=False, backup=True, backup_file=None):
@@ -777,6 +798,96 @@ class Mixpanel(object):
         params = {'from_date': from_date, 'to_date': to_date, 'events': events}
         return self.jql_operation(jql_script, '$set', jql_params=params, backup=False)
 
+    def export_jql_events(self, output_file, from_date, to_date, event_selectors=None, output_properties=None,
+                          timezone_offset=0, format='json', compress=False):
+        """Export events to disk via JQL. Optional whitelist of properties to include in the output.
+
+        :param output_file: Name of the file to write to
+        :param from_date: Date to export events from, can be a datetime object or str of form 'YYYY-MM-DD'
+        :param to_date: Date to export events to,, can be a datetime object or str of form 'YYYY-MM-DD'
+        :param event_selectors: A single event selector dict or a list of event selector dicts
+        :param output_properties: A list of strings of property names to include in the output
+        :param timezone_offset: UTC offset in hours of export project timezone setting. If set, used to convert event
+            timestamps from project time to UTC
+        :param format: Data format for the output can be either 'json' or 'csv'
+        :param compress: Optionally gzip the output
+        :type output_file: str
+        :type from_date: datetime | str
+        :type to_date: datetime | str
+        :type event_selectors: dict | list[dict]
+        :type timezone_offset: int | float
+        :type output_properties: list[str]
+        :type format: str
+        :type compress: bool
+
+        """
+        events = self.query_jql_events(from_date=from_date, to_date=to_date, event_selectors=event_selectors,
+                                       timezone_offset=timezone_offset, output_properties=output_properties,
+                                       format=format)
+
+        self._export_jql_items(events, output_file, format=format, compress=compress)
+
+    def export_jql_people(self, output_file, user_selectors=None, output_properties=None, format='json',
+                          compress=False):
+        """Export People profiles to disk via JQL by providing a single selector string or a list of selector dicts.
+        Optional whitelist of properties to include in the output.
+
+        :param output_file: Name of the file to write to
+        :param user_selectors: A selector string or a list of selector dicts
+        :param output_properties: A list of strings of property names to include in the output
+        :param format: Data format for the output can be 'json' or 'csv'
+        :param compress: Optionally gzip the output
+        :type output_file: str
+        :type user_selectors: str | list[dict]
+        :type output_properties: list[str]
+        :type format: str
+        :type compress: bool
+
+        """
+        profiles = self.query_jql_people(user_selectors=user_selectors, output_properties=output_properties,
+                                         format=format)
+
+        self._export_jql_items(profiles, output_file=output_file, format=format, compress=compress)
+
+    def query_jql_events(self, from_date, to_date, event_selectors=None, timezone_offset=0, output_properties=None,
+                         format='json'):
+        """Query JQL for events. Optional whitelist of properties to include in the output.
+
+        :param from_date: Date to export events from, can be a datetime object or str of form 'YYYY-MM-DD'
+        :param to_date: Date to export events to,, can be a datetime object or str of form 'YYYY-MM-DD'
+        :param event_selectors: A single event selector dict or a list of event selector dicts
+        :param timezone_offset: UTC offset in hours of export project timezone setting. If set, used to convert event
+            timestamps from project time to UTC
+        :param output_properties: A list of strings of property names to include in the output
+        :param format: Data format for the output can be either 'json' or 'csv'
+        :type from_date: datetime | str
+        :type to_date: datetime | str
+        :type event_selectors: dict | list[dict]
+        :type timezone_offset: int | float
+        :type output_properties: list[str]
+        :type format: str
+
+        """
+        return self._query_jql_items('events', from_date=from_date, to_date=to_date, event_selectors=event_selectors,
+                                     output_properties=output_properties, timezone_offset=timezone_offset,
+                                     format=format)
+
+    def query_jql_people(self, user_selectors=None, output_properties=None, format='json'):
+        """Query JQL for profiles by providing a single selector string or a list of selector dicts.
+        Optional whitelist of properties to include in the output.
+
+
+        :param user_selectors: A selector string or a list of selector dicts
+        :param output_properties: A list of strings of property names to include in the output
+        :param format: Data format for the output can be 'json' or 'csv'
+        :type user_selectors: str | list[dict]
+        :type output_properties: list[str]
+        :type format: str
+
+        """
+        return self._query_jql_items('people', user_selectors=user_selectors, output_properties=output_properties,
+                                     format=format)
+
     def query_export(self, params, add_gzip_header=False, raw_stream=False):
         """Queries the /export API and returns a list of Mixpanel event dicts
 
@@ -812,7 +923,7 @@ class Mixpanel(object):
                 return events
         else:
             Mixpanel.LOGGER.warning('/export API response empty')
-            return
+            return []
 
     def query_engage(self, params=None, timezone_offset=None):
         """Queries the /engage API and returns a list of Mixpanel People profile dicts
@@ -1323,32 +1434,41 @@ class Mixpanel(object):
         """
         item_list = []
         try:
-            # Try to load the file as JSON and if there's an exception assume it's CSV
             with open(filename, 'rbU') as item_file:
+                # First try loading it as a JSON list
                 item_list = json.load(item_file)
-        except ValueError:
-            with open(filename, 'rbU') as item_file:
-                reader = csv.reader(item_file, )
-                header = reader.next()
-                # Determine if the data is events or profiles based on keys in the header.
-                # NOTE: this will fail if it were profile data with a people property named 'event'
-                if 'event' in header:
-                    event_index = header.index("event")
-                    distinct_id_index = header.index("distinct_id")
-                    time_index = header.index("time")
-                    for row in reader:
-                        event = Mixpanel._event_object_from_csv_row(row, header, event_index, distinct_id_index,
-                                                                    time_index)
-                        item_list.append(event)
-                elif '$distinct_id' in header:
-                    distinct_id_index = header.index("$distinct_id")
-                    for row in reader:
-                        profile = Mixpanel._people_object_from_csv_row(row, header, distinct_id_index)
-                        item_list.append(profile)
-                else:
-                    Mixpanel.LOGGER.warning(
-                        "Unable to determine Mixpanel data type: CSV header does not contain 'event' or '$distinct_id'")
-                    return None
+        except ValueError as e:
+            if e.message == 'No JSON object could be decoded':
+                # Based on the error message, try to treat it as CSV
+                with open(filename, 'rbU') as item_file:
+                    reader = csv.reader(item_file, )
+                    header = reader.next()
+                    # Determine if the data is events or profiles based on keys in the header.
+                    # NOTE: this will fail if it were profile data with a people property named 'event'
+                    if 'event' in header:
+                        event_index = header.index("event")
+                        distinct_id_index = header.index("distinct_id")
+                        time_index = header.index("time")
+                        for row in reader:
+                            event = Mixpanel._event_object_from_csv_row(row, header, event_index, distinct_id_index,
+                                                                        time_index)
+                            item_list.append(event)
+                    elif '$distinct_id' in header:
+                        distinct_id_index = header.index("$distinct_id")
+                        for row in reader:
+                            profile = Mixpanel._people_object_from_csv_row(row, header, distinct_id_index)
+                            item_list.append(profile)
+                    else:
+                        Mixpanel.LOGGER.warning(
+                            "Unable to determine Mixpanel data type: CSV header does not contain 'event' or '$distinct_id'")
+                        return None
+            else:
+                # Try treating the file as newline delimited JSON objects
+                item_list = []
+                with open(filename, 'rbU') as item_file:
+                    for item in item_file:
+                        item_list.append(json.loads(item))
+
         except IOError:
             Mixpanel.LOGGER.warning("Error loading data from file: " + filename)
 
@@ -1385,7 +1505,7 @@ class Mixpanel(object):
         # event to a log of invalid events and return
         if ('time' not in event['properties']) or ('distinct_id' not in event['properties']):
             Mixpanel.LOGGER.warning('Event missing time or distinct_id property, dumping to invalid_events.txt')
-            with open('invalid_events.txt', 'a') as invalid:
+            with open('invalid_events.txt', 'a+') as invalid:
                 json.dump(event, invalid)
                 invalid.write('\n')
                 return
@@ -1466,6 +1586,32 @@ class Mixpanel(object):
             return dt
         return dt
 
+    @staticmethod
+    def _export_jql_items(items, output_file, format='json', compress=False):
+        """Based method for exporting jql events or jql people to disk
+
+        :param items: json list or csv data
+        :param output_file: Name of the file to write to
+        :param format: Data format for the output can be 'json' or 'csv', should match the data type in items
+        :param compress: Optionally gzip the output file
+        :type items: list | str
+        :type output_file: str
+        :type format: str
+        :type compress: bool
+
+        """
+        if format == 'json':
+            Mixpanel.export_data(items, output_file, format=format, compress=compress)
+        elif format == 'csv':
+            with open(output_file, 'w') as f:
+                f.write(items)
+            if compress:
+                Mixpanel._gzip_file(output_file)
+                os.remove(output_file)
+        else:
+            Mixpanel.LOGGER.warning('Invalid format must be either json or csv, got: ' + format)
+            return
+
     def _get_engage_page(self, params):
         """Fetches and returns the response from an /engage request
 
@@ -1536,14 +1682,16 @@ class Mixpanel(object):
                 pool.apply_async(self._send_batch, args=(base_url, endpoint, batch, dataset_id, dataset_version),
                                  callback=Mixpanel._response_handler_callback)
                 batch = []
+
         # If there are fewer than batch_size updates left ensure one last call is made
         if len(batch):
+            # Add an asynchronous call to _send_batch to the thread pool
             pool.apply_async(self._send_batch, args=(base_url, endpoint, batch, dataset_id, dataset_version),
                              callback=Mixpanel._response_handler_callback)
         pool.close()
         pool.join()
 
-    def _send_batch(self, base_url, endpoint, batch, dataset_id=None, dataset_version=None):
+    def _send_batch(self, base_url, endpoint, batch, dataset_id=None, dataset_version=None, retries=0):
         """POST a single batch of data to a Mixpanel API and return the response
 
         :param base_url: The base API url
@@ -1552,27 +1700,33 @@ class Mixpanel(object):
         :param dataset_id: Dataset name to import into, required if dataset_version is specified, otherwise optional
         :param dataset_version: Dataset version to import into, required if dataset_id is specified, otherwise
             optional
+        :param retries:  Max number of times to retry if we get a HTTP 5xx response (Default value = 0)
         :type base_url: str
         :type endpoint: str
         :type batch: list
         :type dataset_id: str
         :type dataset_version: str
+        :type retries: int
         :return: HTTP response from Mixpanel API
         :rtype: str
 
         """
-        params = {'data': base64.b64encode(json.dumps(batch))}
-        if dataset_id:
-            params['dataset_id'] = dataset_id
-            params['token'] = self.token
-        if dataset_version:
-            params['dataset_version'] = dataset_version
-        response = self.request(base_url, [endpoint], params, 'POST')
-        msg = "Sent " + str(len(batch)) + " items on " + time.strftime("%Y-%m-%d %H:%M:%S") + "!"
-        Mixpanel.LOGGER.debug(msg)
-        return response
-
-
+        try:
+            params = {'data': base64.b64encode(json.dumps(batch))}
+            if dataset_id:
+                params['dataset_id'] = dataset_id
+                params['token'] = self.token
+            if dataset_version:
+                params['dataset_version'] = dataset_version
+            response = self.request(base_url, [endpoint], params, 'POST')
+            msg = "Sent " + str(len(batch)) + " items on " + time.strftime("%Y-%m-%d %H:%M:%S") + "!"
+            Mixpanel.LOGGER.debug(msg)
+            return response
+        except BaseException:
+            Mixpanel.LOGGER.warning("Failed to import batch, dumping to file import_backup.txt")
+            with open('import_backup.txt', 'a+') as backup:
+                json.dump(batch, backup)
+                backup.write('\n')
 
     def _import_data(self, data, base_url, endpoint, timezone_offset=None, ignore_alias=False, dataset_id=None,
                      dataset_version=None, raw_record_import=False):
@@ -1618,6 +1772,87 @@ class Mixpanel(object):
 
         self._dispatch_batches(base_url, endpoint, item_list, args, dataset_id=dataset_id,
                                dataset_version=dataset_version)
+
+    def _query_jql_items(self, data_type, from_date=None, to_date=None, event_selectors=None, user_selectors=None,
+                         output_properties=None, timezone_offset=0, format='json'):
+        """Base method for querying jql for events or People
+
+        :param data_type: Can be either 'users' or 'people'
+        :param from_date: Date to query events from, can be a datetime object or str of form 'YYYY-MM-DD'. Only used
+        when data_type='events'
+        :param to_date: Date to query events to, can be a datetime object or str of form 'YYYY-MM-DD'. Only used when
+        data_type='events'
+        :param event_selectors: A single event selector dict or a list of event selector dicts. Only used when
+        data_type='events
+        :param user_selectors: A selector string or a list of selector dicts. Only used when data_type='people'
+        :param output_properties:  A list of strings of property names to include in the output
+        :param timezone_offset: UTC offset in hours of export project timezone setting. If set, used to convert event
+            timestamps from project time to UTC. Only used when data_type='events'
+        :param format: Data format for the output can be either 'json' or 'csv'
+        :type data_type: str
+        :type from_date: datetime | str
+        :type to_date: datetime | str
+        :type event_selectors: dict | list[dict]
+        :type user_selectors: str | list[dict]
+        :type output_properties: list[str]
+        :type timezone_offset: float | int
+        :type format: str
+
+        """
+
+        if data_type == 'events':
+            jql_script = "function main() {return Events({from_date: params.from_date,to_date: params.to_date," \
+                         "event_selectors: params.event_selectors}).map(function(event) {var result = {event: " \
+                         "event.name,properties: {distinct_id: event.distinct_id,time: (event.time / 1000) - " \
+                         "(params.timezone_offset * 3600)}};if ('output_properties' in params) {output_properties = " \
+                         "params.output_properties;} else {output_properties = Object.keys(event.properties);}" \
+                         "_.each(output_properties, prop => result.properties[prop] = event.properties[prop]);return " \
+                         "result;});}"
+
+            date_format = '%Y-%m-%d'
+            if isinstance(from_date, datetime.datetime):
+                from_date = from_date.strftime(date_format)
+            if isinstance(to_date, datetime.datetime):
+                to_date = to_date.strftime(date_format)
+            if event_selectors is None:
+                event_selectors = []
+            elif isinstance(event_selectors, dict):
+                event_selectors = [event_selectors]
+            elif isinstance(event_selectors, list):
+                pass
+            else:
+                Mixpanel.LOGGER.warning(
+                    'Invalid type for event_selectors, must be dict or list, found: ' + str(type(event_selectors)))
+
+            params = {'from_date': from_date, 'to_date': to_date, 'event_selectors': event_selectors,
+                      'timezone_offset': timezone_offset}
+        elif data_type == 'people':
+            jql_script = "function main() {return People({user_selectors: params.user_selectors}).map(function(user)" \
+                         " {var result = {$distinct_id: user.distinct_id,$properties: {}};if ('output_properties' in" \
+                         " params) {output_properties = params.output_properties;} else {output_properties = " \
+                         "Object.keys(user.properties);}_.each(output_properties, prop => result.$properties[prop]" \
+                         " = user.properties[prop]);return result;});}"
+
+            if user_selectors is None:
+                user_selectors = []
+            elif isinstance(user_selectors, basestring):
+                user_selectors = [{'selector': user_selectors}]
+            elif isinstance(user_selectors, list):
+                pass
+            else:
+                Mixpanel.LOGGER.warning(
+                    'Invalid type for user_selectors, must be str or list, found: ' + str(type(user_selectors)))
+                return
+
+            params = {'user_selectors': user_selectors}
+        else:
+            Mixpanel.LOGGER.warning('Invalid data_type, must be "events" or "people", found: ' + data_type)
+            return
+
+        if output_properties is not None:
+            params['output_properties'] = output_properties
+
+        return self.query_jql(jql_script, params=params, format=format)
 
     def _datasets_request(self, method, dataset_id=None, versions_request=False, version_id=None, state=None):
         """Internal base method for making calls to the /datasets API
