@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Index &#8212; mixpanel_api 1.6.0 documentation</title>
+    <title>Index &#8212; mixpanel_api 1.6.2 documentation</title>
     
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '1.6.0',
+        VERSION:     '1.6.2',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true,
@@ -39,7 +39,7 @@
         <li class="right" >
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">mixpanel_api 1.6.0 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">mixpanel_api 1.6.2 documentation</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -84,6 +84,8 @@
 </li>
       <li><a href="mixpanel_api.html#mixpanel_api.Mixpanel._event_object_from_csv_row">_event_object_from_csv_row() (mixpanel_api.Mixpanel static method)</a>
 </li>
+      <li><a href="mixpanel_api.html#mixpanel_api.Mixpanel._export_jql_items">_export_jql_items() (mixpanel_api.Mixpanel static method)</a>
+</li>
       <li><a href="mixpanel_api.html#mixpanel_api.Mixpanel._get_engage_page">_get_engage_page() (mixpanel_api.Mixpanel method)</a>
 </li>
       <li><a href="mixpanel_api.html#mixpanel_api.Mixpanel._gzip_file">_gzip_file() (mixpanel_api.Mixpanel static method)</a>
@@ -103,6 +105,8 @@
       <li><a href="mixpanel_api.html#mixpanel_api.Mixpanel._prep_params_for_profile">_prep_params_for_profile() (mixpanel_api.Mixpanel static method)</a>
 </li>
       <li><a href="mixpanel_api.html#mixpanel_api.Mixpanel._properties_from_csv_row">_properties_from_csv_row() (mixpanel_api.Mixpanel static method)</a>
+</li>
+      <li><a href="mixpanel_api.html#mixpanel_api.Mixpanel._query_jql_items">_query_jql_items() (mixpanel_api.Mixpanel method)</a>
 </li>
       <li><a href="mixpanel_api.html#mixpanel_api.Mixpanel._response_handler_callback">_response_handler_callback() (mixpanel_api.Mixpanel static method)</a>
 </li>
@@ -150,9 +154,13 @@
 </li>
       <li><a href="mixpanel_api.html#mixpanel_api.Mixpanel.export_data">export_data() (mixpanel_api.Mixpanel static method)</a>
 </li>
+      <li><a href="mixpanel_api.html#mixpanel_api.Mixpanel.export_events">export_events() (mixpanel_api.Mixpanel method)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="mixpanel_api.html#mixpanel_api.Mixpanel.export_events">export_events() (mixpanel_api.Mixpanel method)</a>
+      <li><a href="mixpanel_api.html#mixpanel_api.Mixpanel.export_jql_events">export_jql_events() (mixpanel_api.Mixpanel method)</a>
+</li>
+      <li><a href="mixpanel_api.html#mixpanel_api.Mixpanel.export_jql_people">export_jql_people() (mixpanel_api.Mixpanel method)</a>
 </li>
       <li><a href="mixpanel_api.html#mixpanel_api.Mixpanel.export_people">export_people() (mixpanel_api.Mixpanel method)</a>
 </li>
@@ -258,11 +266,15 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="mixpanel_api.html#mixpanel_api.Mixpanel.query_engage">query_engage() (mixpanel_api.Mixpanel method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="mixpanel_api.html#mixpanel_api.Mixpanel.query_export">query_export() (mixpanel_api.Mixpanel method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="mixpanel_api.html#mixpanel_api.Mixpanel.query_jql">query_jql() (mixpanel_api.Mixpanel method)</a>
+</li>
+      <li><a href="mixpanel_api.html#mixpanel_api.Mixpanel.query_jql_events">query_jql_events() (mixpanel_api.Mixpanel method)</a>
+</li>
+      <li><a href="mixpanel_api.html#mixpanel_api.Mixpanel.query_jql_people">query_jql_people() (mixpanel_api.Mixpanel method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -348,7 +360,7 @@
         <li class="right" >
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">mixpanel_api 1.6.0 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">mixpanel_api 1.6.2 documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">

@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>mixpanel_api &#8212; mixpanel_api 1.6.0 documentation</title>
+    <title>mixpanel_api &#8212; mixpanel_api 1.6.2 documentation</title>
     
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '1.6.0',
+        VERSION:     '1.6.2',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true,
@@ -38,7 +38,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">mixpanel_api 1.6.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">mixpanel_api 1.6.2 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li> 
       </ul>
     </div>  
@@ -53,6 +53,7 @@
 <span class="kn">import</span> <span class="nn">urllib</span>  <span class="c1"># for url encoding</span>
 <span class="kn">import</span> <span class="nn">urllib2</span>  <span class="c1"># for sending requests</span>
 <span class="kn">from</span> <span class="nn">httplib</span> <span class="k">import</span> <span class="n">IncompleteRead</span>
+<span class="kn">from</span> <span class="nn">ssl</span> <span class="k">import</span> <span class="n">SSLError</span>
 <span class="kn">import</span> <span class="nn">cStringIO</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">gzip</span>
@@ -66,7 +67,11 @@
 <span class="kn">from</span> <span class="nn">paginator</span> <span class="k">import</span> <span class="n">ConcurrentPaginator</span>
 <span class="kn">from</span> <span class="nn">ast</span> <span class="k">import</span> <span class="n">literal_eval</span>
 <span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">deepcopy</span>
-<span class="kn">import</span> <span class="nn">csv</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">unicodecsv</span> <span class="k">as</span> <span class="nn">csv</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">csv</span>
 
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">ujson</span> <span class="k">as</span> <span class="nn">json</span>
@@ -101,16 +106,17 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="Mixpanel.__init__"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">api_secret</span><span class="p">,</span> <span class="n">token</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataset_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span> <span class="n">pool_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">read_pool_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_retries</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                 <span class="n">read_pool_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">max_retries</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initializes the Mixpanel object</span>
 
 <span class="sd">        :param api_secret: API Secret for your project</span>
 <span class="sd">        :param token: Project Token for your project, required for imports</span>
 <span class="sd">        :param dataset_id: The name of the dataset to operate on</span>
 <span class="sd">        :param timeout: Time in seconds to wait for HTTP responses</span>
-<span class="sd">        :param pool_size: Number of threads to use for multiprocessing, default is cpu_count * 2</span>
-<span class="sd">        :param read_pool_size: Optional separate number of threads to use just for read operations (i.e. query_engage)</span>
-<span class="sd">        :param max_retries: Maximum number of times to retry when a 503 HTTP response is received</span>
+<span class="sd">        :param pool_size: Number of threads to use for sending data to Mixpanel (Default value = cpu_count * 2)</span>
+<span class="sd">        :param read_pool_size: Separate number of threads to use just for read operations (i.e. query_engage)</span>
+<span class="sd">            (Default value = 2)</span>
+<span class="sd">        :param max_retries: Maximum number of times to retry when a 5xx HTTP response is received (Default value = 4)</span>
 <span class="sd">        :param debug: Enable debug logging</span>
 <span class="sd">        :type api_secret: str</span>
 <span class="sd">        :type token: str</span>
@@ -130,14 +136,12 @@
         <span class="k">if</span> <span class="n">pool_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># Default number of threads is system dependent</span>
             <span class="n">pool_size</span> <span class="o">=</span> <span class="n">cpu_count</span><span class="p">()</span> <span class="o">*</span> <span class="mi">2</span>
-        <span class="k">if</span> <span class="n">read_pool_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">read_pool_size</span> <span class="o">=</span> <span class="n">pool_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pool_size</span> <span class="o">=</span> <span class="n">pool_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">read_pool_size</span> <span class="o">=</span> <span class="n">read_pool_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_retries</span> <span class="o">=</span> <span class="n">max_retries</span>
         <span class="n">log_level</span> <span class="o">=</span> <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">getEffectiveLevel</span><span class="p">()</span>
         <span class="sd">&#39;&#39;&#39; The logger is a singleton for the Mixpanel class, so multiple instances of the Mixpanel class will use the</span>
-<span class="sd">        same logger. Subsequent instances can upgrade the logging level to debug but they cannot downgrade it.</span>
+<span class="sd">        same logger instance. Subsequent instances can upgrade the logging level to debug but they cannot downgrade it.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="k">if</span> <span class="n">debug</span> <span class="ow">or</span> <span class="n">log_level</span> <span class="o">==</span> <span class="mi">10</span><span class="p">:</span>
             <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">)</span>
@@ -145,20 +149,26 @@
             <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span></div>
 
     <span class="nd">@staticmethod</span>
-<div class="viewcode-block" id="Mixpanel.export_data"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.export_data">[docs]</a>    <span class="k">def</span> <span class="nf">export_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Mixpanel.export_data"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.export_data">[docs]</a>    <span class="k">def</span> <span class="nf">export_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span> <span class="n">append_mode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Writes and optionally compresses Mixpanel data to disk in json or csv format</span>
 
 <span class="sd">        :param data: A list of Mixpanel events or People profiles, if format=&#39;json&#39;, arbitrary json can be exported</span>
 <span class="sd">        :param output_file: Name of file to write to</span>
+<span class="sd">        :param append_mode: Set this to True to append data to an existing file using open() mode &#39;a+&#39;, uses open() mode</span>
+<span class="sd">            &#39;w+&#39; when False (Default value = False)</span>
 <span class="sd">        :param format:  Output format can be &#39;json&#39; or &#39;csv&#39; (Default value = &#39;json&#39;)</span>
 <span class="sd">        :param compress:  Option to gzip output (Default value = False)</span>
 <span class="sd">        :type data: list</span>
 <span class="sd">        :type output_file: str</span>
+<span class="sd">        :type append_mode: bool</span>
 <span class="sd">        :type format: str</span>
 <span class="sd">        :type compress: bool</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_file</span><span class="p">,</span> <span class="s1">&#39;w+&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">output</span><span class="p">:</span>
+        <span class="n">open_mode</span> <span class="o">=</span> <span class="s1">&#39;w+&#39;</span>
+        <span class="k">if</span> <span class="n">append_mode</span><span class="p">:</span>
+            <span class="n">open_mode</span> <span class="o">=</span> <span class="s1">&#39;a+&#39;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_file</span><span class="p">,</span> <span class="n">open_mode</span><span class="p">)</span> <span class="k">as</span> <span class="n">output</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="s1">&#39;json&#39;</span><span class="p">:</span>
                 <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
             <span class="k">elif</span> <span class="nb">format</span> <span class="o">==</span> <span class="s1">&#39;csv&#39;</span><span class="p">:</span>
@@ -193,8 +203,7 @@
             <span class="k">pass</span>
         <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;Revenue&#39;</span><span class="p">:</span> <span class="n">total</span><span class="p">}</span></div>
 
-<div class="viewcode-block" id="Mixpanel.request"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.request">[docs]</a>    <span class="k">def</span> <span class="nf">request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_url</span><span class="p">,</span> <span class="n">path_components</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;GET&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">raw_stream</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-                <span class="n">delay</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+<div class="viewcode-block" id="Mixpanel.request"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.request">[docs]</a>    <span class="k">def</span> <span class="nf">request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_url</span><span class="p">,</span> <span class="n">path_components</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;GET&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">raw_stream</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Base method for sending HTTP requests to the various Mixpanel APIs</span>
 
 <span class="sd">        :param base_url: Ex: https://api.mixpanel.com</span>
@@ -204,9 +213,7 @@
 <span class="sd">        :param headers: HTTP request headers dict (Default value = None)</span>
 <span class="sd">        :param raw_stream: Return the raw file-like response directly from urlopen, only works when base_url is</span>
 <span class="sd">            Mixpanel.RAW_API</span>
-<span class="sd">        :param retries: number of times the request has been retried due to HTTP 5xx error (Default value = 0)</span>
-<span class="sd">        :param delay: Amount of time to wait between retries in seconds. Increases exponentially with each retry until</span>
-<span class="sd">            it reaches the max delay of 10. (Default value = 2)</span>
+<span class="sd">        :param retries: number of times the request has been retried (Default value = 0)</span>
 <span class="sd">        :type base_url: str</span>
 <span class="sd">        :type path_components: list</span>
 <span class="sd">        :type params: dict</span>
@@ -214,7 +221,6 @@
 <span class="sd">        :type headers: dict</span>
 <span class="sd">        :type raw_stream: bool</span>
 <span class="sd">        :type retries: int</span>
-<span class="sd">        :type delay: int</span>
 <span class="sd">        :return: JSON data returned from API</span>
 <span class="sd">        :rtype: str</span>
 
@@ -263,19 +269,30 @@
                 <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Reason: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">reason</span><span class="p">))</span>
                 <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="s1">&#39;read&#39;</span><span class="p">):</span>
                     <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Response: &#39;</span> <span class="o">+</span> <span class="n">e</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
-                <span class="k">if</span> <span class="mi">500</span> <span class="o">&lt;=</span> <span class="n">e</span><span class="o">.</span><span class="n">code</span> <span class="o">&lt;=</span> <span class="mi">599</span><span class="p">:</span>
-                    <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Attempting Retry #&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">retries</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-                    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">delay</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="n">delay</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">:</span>
-                        <span class="n">delay</span> <span class="o">*=</span> <span class="mi">2</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="n">path_components</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">raw_stream</span><span class="o">=</span><span class="n">raw_stream</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="n">retries</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">delay</span><span class="o">=</span><span class="n">delay</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="k">raise</span>
+                <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">code</span> <span class="o">&gt;=</span> <span class="mi">500</span><span class="p">:</span>
+                    <span class="c1"># Retry if we get an HTTP 5xx error</span>
+                    <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Attempting retry #&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">retries</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="n">path_components</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span>
+                                 <span class="n">raw_stream</span><span class="o">=</span><span class="n">raw_stream</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="n">retries</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
             <span class="k">except</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">URLError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;We failed to reach a server.&#39;</span><span class="p">)</span>
                 <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Reason: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">reason</span><span class="p">))</span>
                 <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="s1">&#39;read&#39;</span><span class="p">):</span>
                     <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Response: &#39;</span> <span class="o">+</span> <span class="n">e</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+                <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Attempting retry #&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">retries</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="n">path_components</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">raw_stream</span><span class="o">=</span><span class="n">raw_stream</span><span class="p">,</span>
+                             <span class="n">retries</span><span class="o">=</span><span class="n">retries</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">SSLError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">message</span> <span class="o">==</span> <span class="s1">&#39;The read operation timed out&#39;</span><span class="p">:</span>
+                    <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;The read operation timed out.&#39;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="o">+</span> <span class="mi">30</span>
+                    <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="s1">&#39;Increasing timeout to &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; and attempting retry #&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">retries</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="n">path_components</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span>
+                                 <span class="n">raw_stream</span><span class="o">=</span><span class="n">raw_stream</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="n">retries</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span>
+
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="c1"># If the response is gzipped we go ahead and decompress</span>
@@ -288,16 +305,11 @@
                     <span class="k">return</span> <span class="n">response_data</span>
                 <span class="k">except</span> <span class="n">IncompleteRead</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                     <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Response data is incomplete. Attempting retry #&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">retries</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="n">path_components</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="n">retries</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="n">path_components</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span>
+                                 <span class="n">raw_stream</span><span class="o">=</span><span class="n">raw_stream</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="n">retries</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Maximum retries reached. Request failed.&quot;</span><span class="p">)</span>
-            <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;The server may be overloaded. Try again later.&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">base_url</span> <span class="o">==</span> <span class="n">Mixpanel</span><span class="o">.</span><span class="n">IMPORT_API</span> <span class="ow">or</span> <span class="n">base_url</span> <span class="o">==</span> <span class="n">Mixpanel</span><span class="o">.</span><span class="n">BETA_IMPORT_API</span><span class="p">:</span>
-                <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Failed to import batch, dumping to file import_backup.txt&quot;</span><span class="p">)</span>
-                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;import_backup.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">backup</span><span class="p">:</span>
-                    <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]),</span> <span class="n">backup</span><span class="p">)</span>
-                    <span class="n">backup</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-            <span class="k">return</span></div>
+            <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Maximum retries reached. Request failed. Try again later.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">BaseException</span></div>
 
 <div class="viewcode-block" id="Mixpanel.people_operation"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.people_operation">[docs]</a>    <span class="k">def</span> <span class="nf">people_operation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">operation</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">query_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timezone_offset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                          <span class="n">ignore_alias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">backup_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -343,7 +355,7 @@
         <span class="k">if</span> <span class="n">backup</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">backup_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">backup_file</span> <span class="o">=</span> <span class="s2">&quot;backup_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()))</span> <span class="o">+</span> <span class="s2">&quot;.json&quot;</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">export_data</span><span class="p">(</span><span class="n">profiles_list</span><span class="p">,</span> <span class="n">backup_file</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">export_data</span><span class="p">(</span><span class="n">profiles_list</span><span class="p">,</span> <span class="n">backup_file</span><span class="p">,</span> <span class="n">append_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="c1"># Set the dynamic flag to True if value is a function</span>
         <span class="n">dynamic</span> <span class="o">=</span> <span class="n">isfunction</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
@@ -369,6 +381,7 @@
 <span class="sd">        :param backup_file: Optional filename to use for the backup file (Default value = None)</span>
 <span class="sd">        :type profiles: list | str</span>
 <span class="sd">        :type query_params: dict</span>
+<span class="sd">        :type ignore_alias: bool</span>
 <span class="sd">        :type timezone_offset: int | float</span>
 <span class="sd">        :type backup: bool</span>
 <span class="sd">        :type backup_file: str</span>
@@ -698,7 +711,7 @@
         <span class="k">if</span> <span class="n">backup</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">backup_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">backup_file</span> <span class="o">=</span> <span class="s2">&quot;backup_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()))</span> <span class="o">+</span> <span class="s2">&quot;.json&quot;</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">export_data</span><span class="p">(</span><span class="n">profiles_list</span><span class="p">,</span> <span class="n">backup_file</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">export_data</span><span class="p">(</span><span class="n">profiles_list</span><span class="p">,</span> <span class="n">backup_file</span><span class="p">,</span> <span class="n">append_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">profile</span> <span class="ow">in</span> <span class="n">profiles_list</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
@@ -745,23 +758,31 @@
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">people_operation</span><span class="p">(</span><span class="s1">&#39;$delete&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">profiles</span><span class="o">=</span><span class="n">delete_profiles</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Mixpanel.query_jql"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.query_jql">[docs]</a>    <span class="k">def</span> <span class="nf">query_jql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">script</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Mixpanel.query_jql"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.query_jql">[docs]</a>    <span class="k">def</span> <span class="nf">query_jql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">script</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Query the Mixpanel JQL API</span>
 
 <span class="sd">        https://mixpanel.com/help/reference/jql/api-reference#api/access</span>
 
 <span class="sd">        :param script: String containing a JQL script to run</span>
 <span class="sd">        :param params: Optional dict that will be made available to the script as the params global variable.</span>
+<span class="sd">        :param format: Output format can be either &#39;json&#39; or &#39;csv&#39;</span>
 <span class="sd">        :type script: str</span>
 <span class="sd">        :type params: dict</span>
+<span class="sd">        :type format: str</span>
+<span class="sd">        :return: query output as json or a csv str</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">query_params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;script&quot;</span><span class="p">:</span> <span class="n">script</span><span class="p">}</span>
+        <span class="n">query_params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;script&quot;</span><span class="p">:</span> <span class="n">script</span><span class="p">,</span> <span class="s1">&#39;format&#39;</span><span class="p">:</span> <span class="nb">format</span><span class="p">}</span>
+        <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="s1">&#39;csv&#39;</span><span class="p">:</span>
+            <span class="n">query_params</span><span class="p">[</span><span class="s1">&#39;download_file&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;foo.csv&#39;</span>
         <span class="k">if</span> <span class="n">params</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">query_params</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
         <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">Mixpanel</span><span class="o">.</span><span class="n">FORMATTED_API</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;jql&#39;</span><span class="p">],</span> <span class="n">query_params</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">response</span><span class="p">)</span></div>
+        <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="s1">&#39;json&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">response</span></div>
 
 <div class="viewcode-block" id="Mixpanel.jql_operation"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.jql_operation">[docs]</a>    <span class="k">def</span> <span class="nf">jql_operation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">jql_script</span><span class="p">,</span> <span class="n">people_operation</span><span class="p">,</span> <span class="n">update_value</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">],</span> <span class="n">jql_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                       <span class="n">ignore_alias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">backup_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -828,6 +849,96 @@
         <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;from_date&#39;</span><span class="p">:</span> <span class="n">from_date</span><span class="p">,</span> <span class="s1">&#39;to_date&#39;</span><span class="p">:</span> <span class="n">to_date</span><span class="p">,</span> <span class="s1">&#39;events&#39;</span><span class="p">:</span> <span class="n">events</span><span class="p">}</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">jql_operation</span><span class="p">(</span><span class="n">jql_script</span><span class="p">,</span> <span class="s1">&#39;$set&#39;</span><span class="p">,</span> <span class="n">jql_params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="Mixpanel.export_jql_events"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.export_jql_events">[docs]</a>    <span class="k">def</span> <span class="nf">export_jql_events</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span> <span class="n">from_date</span><span class="p">,</span> <span class="n">to_date</span><span class="p">,</span> <span class="n">event_selectors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">output_properties</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                          <span class="n">timezone_offset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Export events to disk via JQL. Optional whitelist of properties to include in the output.</span>
+
+<span class="sd">        :param output_file: Name of the file to write to</span>
+<span class="sd">        :param from_date: Date to export events from, can be a datetime object or str of form &#39;YYYY-MM-DD&#39;</span>
+<span class="sd">        :param to_date: Date to export events to,, can be a datetime object or str of form &#39;YYYY-MM-DD&#39;</span>
+<span class="sd">        :param event_selectors: A single event selector dict or a list of event selector dicts</span>
+<span class="sd">        :param output_properties: A list of strings of property names to include in the output</span>
+<span class="sd">        :param timezone_offset: UTC offset in hours of export project timezone setting. If set, used to convert event</span>
+<span class="sd">            timestamps from project time to UTC</span>
+<span class="sd">        :param format: Data format for the output can be either &#39;json&#39; or &#39;csv&#39;</span>
+<span class="sd">        :param compress: Optionally gzip the output</span>
+<span class="sd">        :type output_file: str</span>
+<span class="sd">        :type from_date: datetime | str</span>
+<span class="sd">        :type to_date: datetime | str</span>
+<span class="sd">        :type event_selectors: dict | list[dict]</span>
+<span class="sd">        :type timezone_offset: int | float</span>
+<span class="sd">        :type output_properties: list[str]</span>
+<span class="sd">        :type format: str</span>
+<span class="sd">        :type compress: bool</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">events</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query_jql_events</span><span class="p">(</span><span class="n">from_date</span><span class="o">=</span><span class="n">from_date</span><span class="p">,</span> <span class="n">to_date</span><span class="o">=</span><span class="n">to_date</span><span class="p">,</span> <span class="n">event_selectors</span><span class="o">=</span><span class="n">event_selectors</span><span class="p">,</span>
+                                       <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span> <span class="n">output_properties</span><span class="o">=</span><span class="n">output_properties</span><span class="p">,</span>
+                                       <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_export_jql_items</span><span class="p">(</span><span class="n">events</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="n">compress</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Mixpanel.export_jql_people"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.export_jql_people">[docs]</a>    <span class="k">def</span> <span class="nf">export_jql_people</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span> <span class="n">user_selectors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">output_properties</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">,</span>
+                          <span class="n">compress</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Export People profiles to disk via JQL by providing a single selector string or a list of selector dicts.</span>
+<span class="sd">        Optional whitelist of properties to include in the output.</span>
+
+<span class="sd">        :param output_file: Name of the file to write to</span>
+<span class="sd">        :param user_selectors: A selector string or a list of selector dicts</span>
+<span class="sd">        :param output_properties: A list of strings of property names to include in the output</span>
+<span class="sd">        :param format: Data format for the output can be &#39;json&#39; or &#39;csv&#39;</span>
+<span class="sd">        :param compress: Optionally gzip the output</span>
+<span class="sd">        :type output_file: str</span>
+<span class="sd">        :type user_selectors: str | list[dict]</span>
+<span class="sd">        :type output_properties: list[str]</span>
+<span class="sd">        :type format: str</span>
+<span class="sd">        :type compress: bool</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">profiles</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query_jql_people</span><span class="p">(</span><span class="n">user_selectors</span><span class="o">=</span><span class="n">user_selectors</span><span class="p">,</span> <span class="n">output_properties</span><span class="o">=</span><span class="n">output_properties</span><span class="p">,</span>
+                                         <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_export_jql_items</span><span class="p">(</span><span class="n">profiles</span><span class="p">,</span> <span class="n">output_file</span><span class="o">=</span><span class="n">output_file</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="n">compress</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Mixpanel.query_jql_events"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.query_jql_events">[docs]</a>    <span class="k">def</span> <span class="nf">query_jql_events</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">from_date</span><span class="p">,</span> <span class="n">to_date</span><span class="p">,</span> <span class="n">event_selectors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timezone_offset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">output_properties</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Query JQL for events. Optional whitelist of properties to include in the output.</span>
+
+<span class="sd">        :param from_date: Date to export events from, can be a datetime object or str of form &#39;YYYY-MM-DD&#39;</span>
+<span class="sd">        :param to_date: Date to export events to,, can be a datetime object or str of form &#39;YYYY-MM-DD&#39;</span>
+<span class="sd">        :param event_selectors: A single event selector dict or a list of event selector dicts</span>
+<span class="sd">        :param timezone_offset: UTC offset in hours of export project timezone setting. If set, used to convert event</span>
+<span class="sd">            timestamps from project time to UTC</span>
+<span class="sd">        :param output_properties: A list of strings of property names to include in the output</span>
+<span class="sd">        :param format: Data format for the output can be either &#39;json&#39; or &#39;csv&#39;</span>
+<span class="sd">        :type from_date: datetime | str</span>
+<span class="sd">        :type to_date: datetime | str</span>
+<span class="sd">        :type event_selectors: dict | list[dict]</span>
+<span class="sd">        :type timezone_offset: int | float</span>
+<span class="sd">        :type output_properties: list[str]</span>
+<span class="sd">        :type format: str</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query_jql_items</span><span class="p">(</span><span class="s1">&#39;events&#39;</span><span class="p">,</span> <span class="n">from_date</span><span class="o">=</span><span class="n">from_date</span><span class="p">,</span> <span class="n">to_date</span><span class="o">=</span><span class="n">to_date</span><span class="p">,</span> <span class="n">event_selectors</span><span class="o">=</span><span class="n">event_selectors</span><span class="p">,</span>
+                                     <span class="n">output_properties</span><span class="o">=</span><span class="n">output_properties</span><span class="p">,</span> <span class="n">timezone_offset</span><span class="o">=</span><span class="n">timezone_offset</span><span class="p">,</span>
+                                     <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Mixpanel.query_jql_people"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.query_jql_people">[docs]</a>    <span class="k">def</span> <span class="nf">query_jql_people</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_selectors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">output_properties</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Query JQL for profiles by providing a single selector string or a list of selector dicts.</span>
+<span class="sd">        Optional whitelist of properties to include in the output.</span>
+
+
+<span class="sd">        :param user_selectors: A selector string or a list of selector dicts</span>
+<span class="sd">        :param output_properties: A list of strings of property names to include in the output</span>
+<span class="sd">        :param format: Data format for the output can be &#39;json&#39; or &#39;csv&#39;</span>
+<span class="sd">        :type user_selectors: str | list[dict]</span>
+<span class="sd">        :type output_properties: list[str]</span>
+<span class="sd">        :type format: str</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query_jql_items</span><span class="p">(</span><span class="s1">&#39;people&#39;</span><span class="p">,</span> <span class="n">user_selectors</span><span class="o">=</span><span class="n">user_selectors</span><span class="p">,</span> <span class="n">output_properties</span><span class="o">=</span><span class="n">output_properties</span><span class="p">,</span>
+                                     <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="Mixpanel.query_export"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.query_export">[docs]</a>    <span class="k">def</span> <span class="nf">query_export</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">add_gzip_header</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">raw_stream</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Queries the /export API and returns a list of Mixpanel event dicts</span>
 
@@ -863,7 +974,7 @@
                 <span class="k">return</span> <span class="n">events</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;/export API response empty&#39;</span><span class="p">)</span>
-            <span class="k">return</span></div>
+            <span class="k">return</span> <span class="p">[]</span></div>
 
 <div class="viewcode-block" id="Mixpanel.query_engage"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel.query_engage">[docs]</a>    <span class="k">def</span> <span class="nf">query_engage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timezone_offset</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Queries the /engage API and returns a list of Mixpanel People profile dicts</span>
@@ -1374,32 +1485,41 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">item_list</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="c1"># Try to load the file as JSON and if there&#39;s an exception assume it&#39;s CSV</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;rbU&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">item_file</span><span class="p">:</span>
+                <span class="c1"># First try loading it as a JSON list</span>
                 <span class="n">item_list</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">item_file</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;rbU&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">item_file</span><span class="p">:</span>
-                <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">item_file</span><span class="p">,</span> <span class="p">)</span>
-                <span class="n">header</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
-                <span class="c1"># Determine if the data is events or profiles based on keys in the header.</span>
-                <span class="c1"># NOTE: this will fail if it were profile data with a people property named &#39;event&#39;</span>
-                <span class="k">if</span> <span class="s1">&#39;event&#39;</span> <span class="ow">in</span> <span class="n">header</span><span class="p">:</span>
-                    <span class="n">event_index</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;event&quot;</span><span class="p">)</span>
-                    <span class="n">distinct_id_index</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;distinct_id&quot;</span><span class="p">)</span>
-                    <span class="n">time_index</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
-                    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
-                        <span class="n">event</span> <span class="o">=</span> <span class="n">Mixpanel</span><span class="o">.</span><span class="n">_event_object_from_csv_row</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">event_index</span><span class="p">,</span> <span class="n">distinct_id_index</span><span class="p">,</span>
-                                                                    <span class="n">time_index</span><span class="p">)</span>
-                        <span class="n">item_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="s1">&#39;$distinct_id&#39;</span> <span class="ow">in</span> <span class="n">header</span><span class="p">:</span>
-                    <span class="n">distinct_id_index</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;$distinct_id&quot;</span><span class="p">)</span>
-                    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
-                        <span class="n">profile</span> <span class="o">=</span> <span class="n">Mixpanel</span><span class="o">.</span><span class="n">_people_object_from_csv_row</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">distinct_id_index</span><span class="p">)</span>
-                        <span class="n">item_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">profile</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                        <span class="s2">&quot;Unable to determine Mixpanel data type: CSV header does not contain &#39;event&#39; or &#39;$distinct_id&#39;&quot;</span><span class="p">)</span>
-                    <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">message</span> <span class="o">==</span> <span class="s1">&#39;No JSON object could be decoded&#39;</span><span class="p">:</span>
+                <span class="c1"># Based on the error message, try to treat it as CSV</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;rbU&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">item_file</span><span class="p">:</span>
+                    <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">item_file</span><span class="p">,</span> <span class="p">)</span>
+                    <span class="n">header</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+                    <span class="c1"># Determine if the data is events or profiles based on keys in the header.</span>
+                    <span class="c1"># NOTE: this will fail if it were profile data with a people property named &#39;event&#39;</span>
+                    <span class="k">if</span> <span class="s1">&#39;event&#39;</span> <span class="ow">in</span> <span class="n">header</span><span class="p">:</span>
+                        <span class="n">event_index</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;event&quot;</span><span class="p">)</span>
+                        <span class="n">distinct_id_index</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;distinct_id&quot;</span><span class="p">)</span>
+                        <span class="n">time_index</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
+                            <span class="n">event</span> <span class="o">=</span> <span class="n">Mixpanel</span><span class="o">.</span><span class="n">_event_object_from_csv_row</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">event_index</span><span class="p">,</span> <span class="n">distinct_id_index</span><span class="p">,</span>
+                                                                        <span class="n">time_index</span><span class="p">)</span>
+                            <span class="n">item_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="s1">&#39;$distinct_id&#39;</span> <span class="ow">in</span> <span class="n">header</span><span class="p">:</span>
+                        <span class="n">distinct_id_index</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;$distinct_id&quot;</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
+                            <span class="n">profile</span> <span class="o">=</span> <span class="n">Mixpanel</span><span class="o">.</span><span class="n">_people_object_from_csv_row</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">distinct_id_index</span><span class="p">)</span>
+                            <span class="n">item_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">profile</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                            <span class="s2">&quot;Unable to determine Mixpanel data type: CSV header does not contain &#39;event&#39; or &#39;$distinct_id&#39;&quot;</span><span class="p">)</span>
+                        <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Try treating the file as newline delimited JSON objects</span>
+                <span class="n">item_list</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;rbU&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">item_file</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">item_file</span><span class="p">:</span>
+                        <span class="n">item_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">item</span><span class="p">))</span>
+
         <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
             <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Error loading data from file: &quot;</span> <span class="o">+</span> <span class="n">filename</span><span class="p">)</span>
 
@@ -1436,7 +1556,7 @@
         <span class="c1"># event to a log of invalid events and return</span>
         <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;time&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">event</span><span class="p">[</span><span class="s1">&#39;properties&#39;</span><span class="p">])</span> <span class="ow">or</span> <span class="p">(</span><span class="s1">&#39;distinct_id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">event</span><span class="p">[</span><span class="s1">&#39;properties&#39;</span><span class="p">]):</span>
             <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Event missing time or distinct_id property, dumping to invalid_events.txt&#39;</span><span class="p">)</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;invalid_events.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">invalid</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;invalid_events.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;a+&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">invalid</span><span class="p">:</span>
                 <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">invalid</span><span class="p">)</span>
                 <span class="n">invalid</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
                 <span class="k">return</span>
@@ -1517,6 +1637,32 @@
             <span class="k">return</span> <span class="n">dt</span>
         <span class="k">return</span> <span class="n">dt</span></div>
 
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Mixpanel._export_jql_items"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel._export_jql_items">[docs]</a>    <span class="k">def</span> <span class="nf">_export_jql_items</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Based method for exporting jql events or jql people to disk</span>
+
+<span class="sd">        :param items: json list or csv data</span>
+<span class="sd">        :param output_file: Name of the file to write to</span>
+<span class="sd">        :param format: Data format for the output can be &#39;json&#39; or &#39;csv&#39;, should match the data type in items</span>
+<span class="sd">        :param compress: Optionally gzip the output file</span>
+<span class="sd">        :type items: list | str</span>
+<span class="sd">        :type output_file: str</span>
+<span class="sd">        :type format: str</span>
+<span class="sd">        :type compress: bool</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="s1">&#39;json&#39;</span><span class="p">:</span>
+            <span class="n">Mixpanel</span><span class="o">.</span><span class="n">export_data</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="n">compress</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">format</span> <span class="o">==</span> <span class="s1">&#39;csv&#39;</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">compress</span><span class="p">:</span>
+                <span class="n">Mixpanel</span><span class="o">.</span><span class="n">_gzip_file</span><span class="p">(</span><span class="n">output_file</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">output_file</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Invalid format must be either json or csv, got: &#39;</span> <span class="o">+</span> <span class="nb">format</span><span class="p">)</span>
+            <span class="k">return</span></div>
+
 <div class="viewcode-block" id="Mixpanel._get_engage_page"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel._get_engage_page">[docs]</a>    <span class="k">def</span> <span class="nf">_get_engage_page</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Fetches and returns the response from an /engage request</span>
 
@@ -1587,14 +1733,16 @@
                 <span class="n">pool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_send_batch</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">dataset_id</span><span class="p">,</span> <span class="n">dataset_version</span><span class="p">),</span>
                                  <span class="n">callback</span><span class="o">=</span><span class="n">Mixpanel</span><span class="o">.</span><span class="n">_response_handler_callback</span><span class="p">)</span>
                 <span class="n">batch</span> <span class="o">=</span> <span class="p">[]</span>
+
         <span class="c1"># If there are fewer than batch_size updates left ensure one last call is made</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">):</span>
+            <span class="c1"># Add an asynchronous call to _send_batch to the thread pool</span>
             <span class="n">pool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_send_batch</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">dataset_id</span><span class="p">,</span> <span class="n">dataset_version</span><span class="p">),</span>
                              <span class="n">callback</span><span class="o">=</span><span class="n">Mixpanel</span><span class="o">.</span><span class="n">_response_handler_callback</span><span class="p">)</span>
         <span class="n">pool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
         <span class="n">pool</span><span class="o">.</span><span class="n">join</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="Mixpanel._send_batch"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel._send_batch">[docs]</a>    <span class="k">def</span> <span class="nf">_send_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_url</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">dataset_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataset_version</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Mixpanel._send_batch"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel._send_batch">[docs]</a>    <span class="k">def</span> <span class="nf">_send_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_url</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">dataset_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataset_version</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;POST a single batch of data to a Mixpanel API and return the response</span>
 
 <span class="sd">        :param base_url: The base API url</span>
@@ -1603,27 +1751,33 @@
 <span class="sd">        :param dataset_id: Dataset name to import into, required if dataset_version is specified, otherwise optional</span>
 <span class="sd">        :param dataset_version: Dataset version to import into, required if dataset_id is specified, otherwise</span>
 <span class="sd">            optional</span>
+<span class="sd">        :param retries:  Max number of times to retry if we get a HTTP 5xx response (Default value = 0)</span>
 <span class="sd">        :type base_url: str</span>
 <span class="sd">        :type endpoint: str</span>
 <span class="sd">        :type batch: list</span>
 <span class="sd">        :type dataset_id: str</span>
 <span class="sd">        :type dataset_version: str</span>
+<span class="sd">        :type retries: int</span>
 <span class="sd">        :return: HTTP response from Mixpanel API</span>
 <span class="sd">        :rtype: str</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">batch</span><span class="p">))}</span>
-        <span class="k">if</span> <span class="n">dataset_id</span><span class="p">:</span>
-            <span class="n">params</span><span class="p">[</span><span class="s1">&#39;dataset_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataset_id</span>
-            <span class="n">params</span><span class="p">[</span><span class="s1">&#39;token&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span>
-        <span class="k">if</span> <span class="n">dataset_version</span><span class="p">:</span>
-            <span class="n">params</span><span class="p">[</span><span class="s1">&#39;dataset_version&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataset_version</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="p">[</span><span class="n">endpoint</span><span class="p">],</span> <span class="n">params</span><span class="p">,</span> <span class="s1">&#39;POST&#39;</span><span class="p">)</span>
-        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Sent &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot; items on &quot;</span> <span class="o">+</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;!&quot;</span>
-        <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">response</span></div>
-
-
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">batch</span><span class="p">))}</span>
+            <span class="k">if</span> <span class="n">dataset_id</span><span class="p">:</span>
+                <span class="n">params</span><span class="p">[</span><span class="s1">&#39;dataset_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataset_id</span>
+                <span class="n">params</span><span class="p">[</span><span class="s1">&#39;token&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span>
+            <span class="k">if</span> <span class="n">dataset_version</span><span class="p">:</span>
+                <span class="n">params</span><span class="p">[</span><span class="s1">&#39;dataset_version&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataset_version</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="p">[</span><span class="n">endpoint</span><span class="p">],</span> <span class="n">params</span><span class="p">,</span> <span class="s1">&#39;POST&#39;</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Sent &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot; items on &quot;</span> <span class="o">+</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;!&quot;</span>
+            <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">response</span>
+        <span class="k">except</span> <span class="ne">BaseException</span><span class="p">:</span>
+            <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Failed to import batch, dumping to file import_backup.txt&quot;</span><span class="p">)</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;import_backup.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;a+&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">backup</span><span class="p">:</span>
+                <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">backup</span><span class="p">)</span>
+                <span class="n">backup</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Mixpanel._import_data"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel._import_data">[docs]</a>    <span class="k">def</span> <span class="nf">_import_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">base_url</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">,</span> <span class="n">timezone_offset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ignore_alias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dataset_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">dataset_version</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">raw_record_import</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -1669,6 +1823,87 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_dispatch_batches</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">,</span> <span class="n">item_list</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">dataset_id</span><span class="o">=</span><span class="n">dataset_id</span><span class="p">,</span>
                                <span class="n">dataset_version</span><span class="o">=</span><span class="n">dataset_version</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Mixpanel._query_jql_items"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel._query_jql_items">[docs]</a>    <span class="k">def</span> <span class="nf">_query_jql_items</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_type</span><span class="p">,</span> <span class="n">from_date</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">to_date</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">event_selectors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">user_selectors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">output_properties</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timezone_offset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Base method for querying jql for events or People</span>
+
+<span class="sd">        :param data_type: Can be either &#39;users&#39; or &#39;people&#39;</span>
+<span class="sd">        :param from_date: Date to query events from, can be a datetime object or str of form &#39;YYYY-MM-DD&#39;. Only used</span>
+<span class="sd">            when data_type=&#39;events&#39;</span>
+<span class="sd">        :param to_date: Date to query events to, can be a datetime object or str of form &#39;YYYY-MM-DD&#39;. Only used when</span>
+<span class="sd">            data_type=&#39;events&#39;</span>
+<span class="sd">        :param event_selectors: A single event selector dict or a list of event selector dicts. Only used when</span>
+<span class="sd">            data_type=&#39;events</span>
+<span class="sd">        :param user_selectors: A selector string or a list of selector dicts. Only used when data_type=&#39;people&#39;</span>
+<span class="sd">        :param output_properties:  A list of strings of property names to include in the output</span>
+<span class="sd">        :param timezone_offset: UTC offset in hours of export project timezone setting. If set, used to convert event</span>
+<span class="sd">            timestamps from project time to UTC. Only used when data_type=&#39;events&#39;</span>
+<span class="sd">        :param format: Data format for the output can be either &#39;json&#39; or &#39;csv&#39;</span>
+<span class="sd">        :type data_type: str</span>
+<span class="sd">        :type from_date: datetime | str</span>
+<span class="sd">        :type to_date: datetime | str</span>
+<span class="sd">        :type event_selectors: dict | list[dict]</span>
+<span class="sd">        :type user_selectors: str | list[dict]</span>
+<span class="sd">        :type output_properties: list[str]</span>
+<span class="sd">        :type timezone_offset: float | int</span>
+<span class="sd">        :type format: str</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">data_type</span> <span class="o">==</span> <span class="s1">&#39;events&#39;</span><span class="p">:</span>
+            <span class="n">jql_script</span> <span class="o">=</span> <span class="s2">&quot;function main() {return Events({from_date: params.from_date,to_date: params.to_date,&quot;</span> \
+                         <span class="s2">&quot;event_selectors: params.event_selectors}).map(function(event) {var result = {event: &quot;</span> \
+                         <span class="s2">&quot;event.name,properties: {distinct_id: event.distinct_id,time: (event.time / 1000) - &quot;</span> \
+                         <span class="s2">&quot;(params.timezone_offset * 3600)}};if (&#39;output_properties&#39; in params) {output_properties = &quot;</span> \
+                         <span class="s2">&quot;params.output_properties;} else {output_properties = Object.keys(event.properties);}&quot;</span> \
+                         <span class="s2">&quot;_.each(output_properties, prop =&gt; result.properties[prop] = event.properties[prop]);return &quot;</span> \
+                         <span class="s2">&quot;result;});}&quot;</span>
+
+            <span class="n">date_format</span> <span class="o">=</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">&#39;</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">from_date</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">):</span>
+                <span class="n">from_date</span> <span class="o">=</span> <span class="n">from_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="n">date_format</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">to_date</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">):</span>
+                <span class="n">to_date</span> <span class="o">=</span> <span class="n">to_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="n">date_format</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">event_selectors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">event_selectors</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">event_selectors</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">event_selectors</span> <span class="o">=</span> <span class="p">[</span><span class="n">event_selectors</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">event_selectors</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s1">&#39;Invalid type for event_selectors, must be dict or list, found: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">event_selectors</span><span class="p">)))</span>
+
+            <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;from_date&#39;</span><span class="p">:</span> <span class="n">from_date</span><span class="p">,</span> <span class="s1">&#39;to_date&#39;</span><span class="p">:</span> <span class="n">to_date</span><span class="p">,</span> <span class="s1">&#39;event_selectors&#39;</span><span class="p">:</span> <span class="n">event_selectors</span><span class="p">,</span>
+                      <span class="s1">&#39;timezone_offset&#39;</span><span class="p">:</span> <span class="n">timezone_offset</span><span class="p">}</span>
+        <span class="k">elif</span> <span class="n">data_type</span> <span class="o">==</span> <span class="s1">&#39;people&#39;</span><span class="p">:</span>
+            <span class="n">jql_script</span> <span class="o">=</span> <span class="s2">&quot;function main() {return People({user_selectors: params.user_selectors}).map(function(user)&quot;</span> \
+                         <span class="s2">&quot; {var result = {$distinct_id: user.distinct_id,$properties: </span><span class="si">{}</span><span class="s2">};if (&#39;output_properties&#39; in&quot;</span> \
+                         <span class="s2">&quot; params) {output_properties = params.output_properties;} else {output_properties = &quot;</span> \
+                         <span class="s2">&quot;Object.keys(user.properties);}_.each(output_properties, prop =&gt; result.$properties[prop]&quot;</span> \
+                         <span class="s2">&quot; = user.properties[prop]);return result;});}&quot;</span>
+
+            <span class="k">if</span> <span class="n">user_selectors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">user_selectors</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">user_selectors</span><span class="p">,</span> <span class="n">basestring</span><span class="p">):</span>
+                <span class="n">user_selectors</span> <span class="o">=</span> <span class="p">[{</span><span class="s1">&#39;selector&#39;</span><span class="p">:</span> <span class="n">user_selectors</span><span class="p">}]</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">user_selectors</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s1">&#39;Invalid type for user_selectors, must be str or list, found: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">user_selectors</span><span class="p">)))</span>
+                <span class="k">return</span>
+
+            <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;user_selectors&#39;</span><span class="p">:</span> <span class="n">user_selectors</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">Mixpanel</span><span class="o">.</span><span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Invalid data_type, must be &quot;events&quot; or &quot;people&quot;, found: &#39;</span> <span class="o">+</span> <span class="n">data_type</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">output_properties</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s1">&#39;output_properties&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">output_properties</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">query_jql</span><span class="p">(</span><span class="n">jql_script</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Mixpanel._datasets_request"><a class="viewcode-back" href="../mixpanel_api.html#mixpanel_api.Mixpanel._datasets_request">[docs]</a>    <span class="k">def</span> <span class="nf">_datasets_request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">dataset_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">versions_request</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">version_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Internal base method for making calls to the /datasets API</span>
@@ -1748,7 +1983,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">mixpanel_api 1.6.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">mixpanel_api 1.6.2 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li> 
       </ul>
     </div>

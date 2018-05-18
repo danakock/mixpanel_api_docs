@@ -1779,11 +1779,11 @@ class Mixpanel(object):
 
         :param data_type: Can be either 'users' or 'people'
         :param from_date: Date to query events from, can be a datetime object or str of form 'YYYY-MM-DD'. Only used
-        when data_type='events'
+            when data_type='events'
         :param to_date: Date to query events to, can be a datetime object or str of form 'YYYY-MM-DD'. Only used when
-        data_type='events'
+            data_type='events'
         :param event_selectors: A single event selector dict or a list of event selector dicts. Only used when
-        data_type='events
+            data_type='events
         :param user_selectors: A selector string or a list of selector dicts. Only used when data_type='people'
         :param output_properties:  A list of strings of property names to include in the output
         :param timezone_offset: UTC offset in hours of export project timezone setting. If set, used to convert event
