@@ -318,7 +318,7 @@ class Mixpanel(object):
 
     def people_delete(self, profiles=None, query_params=None, timezone_offset=None, ignore_alias=True, backup=True,
                       backup_file=None):
-        """Deletes the specified People profiles with the $delete operation and optionally creates a backup file
+        """Deletes the specified People profiles with the $delete operation and creates a backup file
 
         :param profiles: Can be a list of profiles or the name of a file containing a JSON array or CSV of profiles.
             Alternative to query_params. (Default value = None)
@@ -326,7 +326,7 @@ class Mixpanel(object):
         :param timezone_offset: UTC offset in hours of project timezone setting, used to calculate as_of_timestamp
             parameter for queries that use behaviors. Required if query_params contains behaviors (Default value = None)
         :param ignore_alias: True or False (Default value = True)
-        :param backup: True to create backup file otherwise False (default)
+        :param backup: True to create backup file otherwise False (default value = True)
         :param backup_file: Optional filename to use for the backup file (Default value = None)
         :type profiles: list | str
         :type query_params: dict
@@ -1779,11 +1779,11 @@ class Mixpanel(object):
 
         :param data_type: Can be either 'users' or 'people'
         :param from_date: Date to query events from, can be a datetime object or str of form 'YYYY-MM-DD'. Only used
-            when data_type='events'
+        when data_type='events'
         :param to_date: Date to query events to, can be a datetime object or str of form 'YYYY-MM-DD'. Only used when
-            data_type='events'
+        data_type='events'
         :param event_selectors: A single event selector dict or a list of event selector dicts. Only used when
-            data_type='events
+        data_type='events
         :param user_selectors: A selector string or a list of selector dicts. Only used when data_type='people'
         :param output_properties:  A list of strings of property names to include in the output
         :param timezone_offset: UTC offset in hours of export project timezone setting. If set, used to convert event
